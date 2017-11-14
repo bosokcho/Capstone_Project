@@ -1,0 +1,140 @@
+---
+title: "Hurricanes Checkpoint 3"
+author: "Madeline Abbott, Daisy Cho, Aidan Teppema"
+date: "11/13/2017"
+output: html_document
+---
+
+```{r include=FALSE}
+library(readr)
+library(dplyr)
+library(tidyr)
+```
+
+# Progress Made:
+
+So far, we have selected the data we want to use: data collected on tropical storms and their paths, data on changing C02 levels in the atmosphere, data on atmospheric pressure, and data on global temperature anomalies.  We have imported these data sets into R and removed missing values to prepare them for analysis.  We are interested in the relationship between hurricanes and climate change and searched for ocean and land surface temperature data and C02 emissions data.  Unfortunately, much climate change data is difficult to find.
+
+
+
+# Group Member Roles:
+
+Since this is still a preliminary stage, we worked together for the majority of our data search and initial cleaning of the data. Madeline and Aidan hunted for data and information and looked into the meaning of variables for each data set. Aidan also wrote up our progress description.  Daisy hunted for data, imported the data sets into R and cleaned them.  Madeline also helped with the data cleaning process.
+
+
+
+# Data:
+
+## Tropical Storm Data
+(https://hifld-dhs-gii.opendata.arcgis.com/datasets/3ea21accbfab4ed8b14ede2e802cc2ec_0)
+```{r}
+hurricane_data <- read_csv("~/Desktop/Historical_Tropical_Storm_Tracks.csv")
+
+hurricane_data<-na.omit(hurricane_data)
+hurricane_data<-subset(hurricane_data, select=-c(NAME, BTID, AD_TIME))
+
+dim(hurricane_data)
+names(hurricane_data)
+head(hurricane_data)
+summary(hurricane_data)
+```
+
+### Useful variable names and descriptions:
+
+* YEAR: year when storm occurred
+* MONTH: month when storm occurred
+* DAY: day when storm occurred
+* NAME: storm name
+* LAT: latitude of data collection
+* LONG: longitude of data collection
+* WIND_KTS: wind speed (in knots)
+* PRESSURE: air pressure (in millibars) 
+* CAT: category of storm (tropical storm, tropical depression, or hurricane with severity level)
+* BASIN: which basin the storm occurred in
+
+
+## Surface Temperature Deviation Data
+(https://data.giss.nasa.gov/gistemp/)
+```{r}
+temp_data <- read_csv("~/Desktop/ZonAnn.csv")
+
+temp_data[!complete.cases(temp_data),]
+temp_data<-na.omit(temp_data)
+
+dim(temp_data)
+names(temp_data)
+head(temp_data)
+summary(temp_data)
+```
+
+### Useful variable names and descriptions:
+
+* Year: date of measurement
+* Glob: global temperature anomalies
+* NHem: northern hemisphere temperature anomalies
+* SHem: southern hemisphere temperature anomalies
+* 24N-90N...90S-64N: anomalies for global bands between indicated latitudes
+
+
+
+## CO2 Emission Data
+(https://www.esrl.noaa.gov/gmd/ccgg/trends/global.html#global_growth)
+```{r}
+co2_data <- read_csv("~/Desktop/CO2.csv")
+
+co2_data[!complete.cases(co2_data),]
+co2_data<-na.omit(co2_data)
+
+dim(co2_data)
+names(co2_data)
+head(co2_data)
+summary(co2_data)
+```
+
+### Useful variable names and descriptions:
+
+* year: year of measurement
+* month: month of that year of measurement
+* decimal: Year + the time measurement taken in the year
+* average: ppm/year globally
+* trend: ppm/year at Mauna Loa and South Pole 
+
+
+
+## NAO Index Data
+(https://climatedataguide.ucar.edu/climate-data/hurrell-north-atlantic-oscillation-nao-index-station-based)
+```{r}
+NAO_index <- read_csv("~/Desktop/NAO_index_monthly.csv", 
+    col_types = cols(Apr = col_number(), 
+        Aug = col_number(), Dec = col_number(), 
+        Feb = col_number(), Jan = col_number(), 
+        Jul = col_number(), Jun = col_number(), 
+        Mar = col_number(), May = col_number(), 
+        Nov = col_number(), Oct = col_number(), 
+        Sep = col_number()))
+
+NAO_index <- NAO_index %>%
+  rename(year = X1) %>%
+  select(c(year, Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec)) %>%
+  mutate(Jul = replace(Jul, Jul < -50| Jul > 50, "")) %>%
+  mutate(Aug = replace(Aug, Aug < -50| Aug > 50, "")) %>%
+  mutate(Sep = replace(Sep, Sep < -50| Sep > 50, "")) %>%
+  mutate(Oct = replace(Oct, Oct < -50| Oct > 50, "")) %>%
+  mutate(Nov = replace(Nov, Nov < -50| Nov > 50, "")) %>%
+  mutate(Dec = replace(Dec, Dec < -50| Dec > 50, ""))
+  
+
+NAO_index <- NAO_index[-nrow(NAO_index),] 
+
+dim(NAO_index)
+names(NAO_index)
+head(NAO_index)
+summary(NAO_index)
+```
+
+### Useful variable names and descriptions:
+
+Rows correspond to each year of recorded observations and columns to each month of recorded observations.  Observations correspond to Hurrell North Atlantic Oscillation (NAO) index, which measures fluctuations in atmospheric pressure in the North Atlantic Ocean.
+
+
+
