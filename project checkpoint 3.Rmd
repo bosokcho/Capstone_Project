@@ -1,1 +1,43 @@
-wjajdfajld
+# Project Checkpoint 3
+
+**NAME:**  Madeline Abbott, Aidan Teppema, Daisy Cho
+
+\
+\
+\
+\
+
+
+
+
+```{r}
+library(dplyr)
+
+#Hurricane data
+hurricane_data=read.csv("Historical_Tropical_Storm_Tracks.csv", header=TRUE)
+hurricane_data[!complete.cases(hurricane_data),]
+hurricane<-na.omit(hurricane_data)
+hurricane<-subset(hurricane, select= -c(NAME, BTID, AD_TIME))
+dim(hurricane)
+head(hurricane)
+names(hurricane)
+summary(hurricane)
+
+#Surface temperature deviation data
+temp_data=read.csv("ZonAnn.csv", header=TRUE)
+temp_data[!complete.cases(temp_data),]
+temperature<-na.omit(temp_data)
+dim(temperature)
+head(temperature)
+names(temperature)
+summary(temperature)
+
+#CO2 emission data
+co2_data=read.csv("CO2.csv", header=TRUE)
+co2_data[!complete.cases(co2_data),]
+co2<-na.omit(co2_data)
+dim(co2)
+head(co2)
+names(co2)
+summary(co2)
+```
