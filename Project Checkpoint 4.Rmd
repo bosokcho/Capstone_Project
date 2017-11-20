@@ -30,7 +30,7 @@ library(tidyr)
 
 #Temperature:
 ```{r}
-temp_data <- read_csv("~/Desktop/ZonAnn.csv")
+temp_data <- read.csv("ZonAnn.csv")
 
 temp_data[!complete.cases(temp_data),]
 temp_data<-na.omit(temp_data)
@@ -39,4 +39,5 @@ dim(temp_data)
 names(temp_data)
 head(temp_data)
 summary(temp_data)
+plot(temp_data)
 ```
