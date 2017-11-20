@@ -26,7 +26,7 @@ We began our exploratory analysis of the data by creating plots of potential var
 # Group Member Roles:
 
 * Madeline--created some plots of hurricane data and NAO index data
-* Daisy--
+* Daisy--created plots of temperature data
 * Aidan--
 
 
