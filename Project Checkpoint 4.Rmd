@@ -14,6 +14,7 @@
 library(readr)
 library(dplyr)
 library(tidyr)
+library(ggplot2)
 ```
 
 # Progress Made:
@@ -34,10 +35,15 @@ temp_data <- read.csv("ZonAnn.csv")
 
 temp_data[!complete.cases(temp_data),]
 temp_data<-na.omit(temp_data)
-
+temp_data<-temp_data[,-(5:15),drop=FALSE]
 dim(temp_data)
 names(temp_data)
 head(temp_data)
 summary(temp_data)
-plot(temp_data)
+ggplot(temp_data,aes(x=Year, y=Glob))+
+  geom_line()
+ggplot(temp_data,aes(x=Year, y=NHem))+
+  geom_line()
+ggplot(temp_data,aes(x=Year, y=SHem))+
+  geom_line()
 ```
