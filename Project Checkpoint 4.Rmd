@@ -13,11 +13,9 @@ library(readr)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
-<<<<<<< HEAD
-=======
+
 #library(ggmap)
 library(reshape2)
->>>>>>> 83c14e4680ae0ecfea1bc29b2b709e63ab305b44
 ```
 
 # Progress Made:
@@ -36,7 +34,7 @@ We began our exploratory analysis of the data by creating plots of potential var
 
 # Hurricanes: 
 ```{r}
-hurricane_data <- read_csv("~/Desktop/Historical_Tropical_Storm_Tracks.csv")
+hurricane_data <- read_csv("Historical_Tropical_Storm_Tracks.csv")
 
 hurricane_data<-na.omit(hurricane_data)
 hurricane_data<-subset(hurricane_data, select=-c(BTID, AD_TIME))
@@ -114,14 +112,13 @@ ggplot(temp_data,aes(x=Year))+
   geom_line(aes(y=SHem, color="Southern Hemisphere"))+
   ylab("Temperature Anomolies")
 ```
-=======
-```
+
 
 
 
 # NAO Index Data
 ```{r}
-NAO_index1 <- read_csv("~/Desktop/NAO_index_monthly.csv", 
+NAO_index1 <- read_csv("NAO_index_monthly.csv", 
     col_types = cols(Apr = col_number(), 
         Aug = col_number(), Dec = col_number(), 
         Feb = col_number(), Jan = col_number(), 
