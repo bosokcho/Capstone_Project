@@ -149,6 +149,7 @@ ggplot(temp_recent,aes(x=Year))+
   geom_line(aes(y=Glob, color="Global"))+
   geom_line(aes(y=NHem, color="Northern Hemisphere"))+
   geom_line(aes(y=SHem, color="Southern Hemisphere"))+
+<<<<<<< HEAD
   ylab("Temperature Anomolies")
 
 
@@ -156,11 +157,19 @@ ggplot(temp_recent,aes(x=Year))+
 #ggplot(hurricanes_categories, aes(x = YEAR, y = TOTAL_HURRICANES, color = CAT, fill = CAT)) + 
   #geom_bar(stat = "identity") +
   #geom_abline(data=temp_data, aes(x=Year, y=Glob))
+=======
+  ylab("Temperature Anomolies")+
+  geom_smooth(method='lm', aes(Year,Glob), colour="red", size=0.5, se=FALSE)+
+  geom_smooth(method='lm', aes(Year,NHem),colour="green", size=0.5, se=FALSE)+
+  geom_smooth(method='lm', aes(Year,SHem), colour="blue", size=0.5, se=FALSE)
+>>>>>>> e790dea0cd7a3a3e049a57dff9a41681643a5d8a
 ```
 
 
+#CO2
 
 ```{r}
+<<<<<<< HEAD
 
 # Show increasing CO2 over the years by month
 library(ggplot2)
@@ -175,28 +184,34 @@ ggplot(CO2, aes(x = month, y = average, color = year)) + geom_point()
 # CO2
 ```{r}
 
+=======
+CO2 <- read_csv("CO2.csv")
+>>>>>>> e790dea0cd7a3a3e049a57dff9a41681643a5d8a
 # Alter CO2 to remove unnecessary variable trend
 CO2 <- subset(CO2, select = -trend)
 
-```
+# Create subset of CO2 data from year 2000 to show only fluxuations in CO2 levels throughout one year
 
-```{r}
+# Show increasing CO2 over the years by month
+ggplot(CO2, aes(x = month, y = average, color = year)) + geom_point()
+
 
 # Create subset of CO2 data from year 2000
 # to show only fluxuations in CO2 levels throughout one year
+
 CO2_2000 <- subset(CO2, year == 2000)
 head(CO2_2000)
 
 # Plot this example
 plot(CO2_2000$average ~ CO2_2000$month)
 
-```
-
-```{r}
 
 # Create time series to show variation over months and years
 Average <- ts(CO2$average, frequency = 12, start = 1980)
 
+
+# Create time series to show variation over months and years
+Average <- ts(CO2$average, frequency = 12, start = 1980)
 
 # Plot and add axis labels
 v1 <- c(1980,1985,1990,1995,2000,2005,2010,2015)
@@ -207,23 +222,25 @@ axis(side = 1,
      labels = v2,
      tck=-.05)
 
-```
+# Create colored time series 
+CO2$Date <- as.yearmon(paste(CO2$year, CO2$month), "%Y %m")
 
-```{r}
+# Plot this time series
+ggplot(CO2, aes(Date, Average)) + geom_line( aes(colour = year))
 
 # Create colored time series 
 CO2$Date <- as.yearmon(paste(CO2$year, CO2$month), "%Y %m")
 
-ggplot(CO2, aes(Date, Average)) + geom_line(aes(colour = year))
+# Plot time series
+ggplot(CO2, aes(Date, Average)) + geom_line( aes(colour = year))
 
-```
-
-```{r}
+# Add trend line
+ggplot(CO2, aes(Date, Average)) + geom_line( aes(colour = year)) + geom_smooth()
 
 # Show increasing CO2 over the years by month
 ggplot(CO2, aes(x = month, y = average, color = year)) + geom_point()
-
 ```
+
 
 
 # NAO Index Data
