@@ -13,7 +13,6 @@ library(readr)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
-library(zoo)
 
 #library(ggmap)
 library(reshape2)
@@ -28,7 +27,7 @@ We began our exploratory analysis of the data by creating plots of potential var
 
 * Madeline--created some plots of hurricane data and NAO index data
 * Daisy--created plots of temperature data
-* Aidan--created plots of CO2 data
+* Aidan--
 
 
 # Data:
@@ -101,64 +100,28 @@ temp_data <- read.csv("ZonAnn.csv")
 temp_data[!complete.cases(temp_data),]
 temp_data<-na.omit(temp_data)
 temp_data<-temp_data[,-(5:15),drop=FALSE]
-dim(temp_data)
-names(temp_data)
-head(temp_data)
-summary(temp_data)
+temp_recent <- temp_data %>%
+  filter(Year > 1949)
+dim(temp_recent)
+names(temp_recent)
+head(temp_recent)
+summary(temp_recent)
 
 # plot of Global, Northern Hemisphere, Southern Hemisphere deviation from corresponding mean by year
-ggplot(temp_data,aes(x=Year))+
+ggplot(temp_recent,aes(x=Year))+
   geom_line(aes(y=Glob, color="Global"))+
   geom_line(aes(y=NHem, color="Northern Hemisphere"))+
   geom_line(aes(y=SHem, color="Southern Hemisphere"))+
   ylab("Temperature Anomolies")
+
+
+
+ggplot(hurricanes_categories, aes(x = YEAR, y = TOTAL_HURRICANES, color = CAT, fill = CAT)) + 
+  geom_bar(stat = "identity")+
+  geom_abline(data=temp_data, aes(x=Year, y=Glob))
 ```
 
-# CO2
-```{r}
 
-# Alter CO2 to remove unnecessary variable trend
-CO2 <- subset(CO2, select = -trend)
-
-```
-
-```{r}
-
-# Create subset of CO2 data from year 2000 to show only fluxuations in CO2 levels throughout one year
-CO2_2000 <- subset(CO2, year == 2000)
-head(CO2_2000)
-
-# Plot this example
-plot(CO2_2000$average ~ CO2_2000$month)
-
-```
-
-```{r}
-
-# Create time series to show variation over months and years
-Average <- ts(CO2$average, frequency = 12, start = 1980)
-
-
-# Plot and add axis labels
-v1 <- c(1980,1985,1990,1995,2000,2005,2010,2015)
-v2 <- c(1980,1985,1990,1995,2000,2005,2010,2015)
-plot(Average)
-axis(side = 1, 
-     at = v1, 
-     labels = v2,
-     tck=-.05)
-
-```
-
-```{r}
-
-# Create colored time series 
-CO2$Date <- as.yearmon(paste(CO2$year, CO2$month), "%Y %m")
-
-# Plot this time series
-ggplot(CO2, aes(Date, Average)) + geom_line( aes(colour = year))
-
-```
 
 ```{r}
 
@@ -220,8 +183,3 @@ NAO_avgMonth <- aggregate(NAO_index[, 3], list(NAO_index$month), mean)
 ggplot(data = NAO_avgMonth, aes(x = Group.1, y = x)) + geom_point(color = "blue") + xlab("month") + ylab("NAO index, averaged across all years")
 ```
 
-
-
-
-
->>>>>>> 83c14e4680ae0ecfea1bc29b2b709e63ab305b44
