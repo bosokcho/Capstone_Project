@@ -1,4 +1,4 @@
-# Project Checkpoint 4
+# Project Checkpoint 5
 
 **NAMES:**  Madeline Abbott, Aidan Teppema, Daisy Cho
 
@@ -23,14 +23,14 @@ library(viridis)
 
 # Progress Made:
 
-We began our exploratory analysis of the data by creating plots of potential variables of interest (such as hurricane frequency, category frequency, maximum wind speed, NAO index, and CO2 levels) over time.  We looked for trends in these variables over time--trends that we could potentially use in our model...
+
 
 
 # Group Member Roles:
 
-* Madeline--created some plots of hurricane data and NAO index data
-* Daisy--created plots of temperature data
-* Aidan--created plots of CO2 data
+* Madeline--
+* Daisy--
+* Aidan--
 
 
 # Data
