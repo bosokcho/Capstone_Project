@@ -160,6 +160,16 @@ ggplot(CO2, aes(Date, Average)) + geom_line( aes(colour = year))
 
 ```
 
+```{r}
+
+# Show increasing CO2 over the years by month
+library(ggplot2)
+library(lubridate)
+
+ggplot(CO2, aes(x = month, y = average, color = year)) + geom_point()
+
+```
+
 
 # NAO Index Data
 ```{r}
