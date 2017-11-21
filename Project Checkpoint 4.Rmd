@@ -15,9 +15,10 @@ library(tidyr)
 library(ggplot2)
 library(zoo)
 library(lubridate)
-
-#library(ggmap)
+library(ggmap)
 library(reshape2)
+library(MASS)
+library(viridis)
 ```
 
 # Progress Made:
@@ -63,9 +64,21 @@ hurricanes_recent <- hurricane_data %>%
 Some plots...
 ```{r}
 # Plotting hurricane denisty by location
+
+get_density <- function(x, y, n = 100) {
+  dens <- MASS::kde2d(x = x, y = y, n = n)
+  ix <- findInterval(x, dens$x)
+  iy <- findInterval(y, dens$y)
+  ii <- cbind(ix, iy)
+  return(dens$z[ii])
+}
+
+hurricanes_recent$density <- get_density(hurricanes_recent$LONG, hurricanes_recent$LAT)
 # creating a sample data.frame with your lat/lon points
-transform(hurricanes_recent, char = as.numeric(LAT))
-transform(hurricanes_recent, char = as.numeric(LONG))
+hurricanes_recent$LAT <- as.numeric(hurricanes_recent$LAT)
+hurricanes_recent$LONG <- as.numeric(hurricanes_recent$LONG)
+#transform(hurricanes_recent, char = as.numeric(LAT))
+#transform(hurricanes_recent, char = as.numeric(LONG))
 
 # getting the map
 map_hurricanes <- get_map(location = c(lon = mean(hurricanes_recent$LONG), lat = mean(hurricanes_recent$LAT)), zoom = 2, maptype = "terrain", scale = 2)
@@ -140,9 +153,9 @@ ggplot(temp_recent,aes(x=Year))+
 
 
 
-ggplot(hurricanes_categories, aes(x = YEAR, y = TOTAL_HURRICANES, color = CAT, fill = CAT)) + 
-  geom_bar(stat = "identity")+
-  geom_abline(data=temp_data, aes(x=Year, y=Glob))
+#ggplot(hurricanes_categories, aes(x = YEAR, y = TOTAL_HURRICANES, color = CAT, fill = CAT)) + 
+  #geom_bar(stat = "identity") +
+  #geom_abline(data=temp_data, aes(x=Year, y=Glob))
 ```
 
 
@@ -152,6 +165,8 @@ ggplot(hurricanes_categories, aes(x = YEAR, y = TOTAL_HURRICANES, color = CAT, f
 # Show increasing CO2 over the years by month
 library(ggplot2)
 library(lubridate)
+
+CO2 <- read_csv("~/Desktop/Bayes Capstone/CO2.csv")
 
 ggplot(CO2, aes(x = month, y = average, color = year)) + geom_point()
 
