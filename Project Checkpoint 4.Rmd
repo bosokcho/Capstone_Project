@@ -131,7 +131,7 @@ ggplot(hurricanes_wind, aes(x = YEAR, y = AVG_WIND)) + geom_point() + ylab("Aver
 
 
 #Temperature
-```{r}
+```{r Temperature}
 temp_data <- read.csv("ZonAnn.csv")
 
 temp_data[!complete.cases(temp_data),]
@@ -158,7 +158,7 @@ ggplot(temp_recent,aes(x=Year))+
 
 #CO2
 
-```{r}
+```{r CO2}
 # Show increasing CO2 over the years by month
 CO2 <- read_csv("CO2.csv")
 
@@ -221,7 +221,7 @@ ggplot(CO2, aes(x = month, y = average, color = year)) + geom_point()
 
 
 # NAO Index Data
-```{r}
+```{r NAO Index}
 NAO_index1 <- read_csv("NAO_index_monthly.csv", 
     col_types = cols(Apr = col_number(), 
         Aug = col_number(), Dec = col_number(), 
