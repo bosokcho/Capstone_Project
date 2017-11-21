@@ -150,9 +150,9 @@ ggplot(temp_recent,aes(x=Year))+
   geom_line(aes(y=NHem, color="Northern Hemisphere"))+
   geom_line(aes(y=SHem, color="Southern Hemisphere"))+
   ylab("Temperature Anomolies")+
-  geom_smooth(method='lm', aes(Year,Glob), colour="red", size=0.5, se=FALSE)+
-  geom_smooth(method='lm', aes(Year,NHem),colour="green", size=0.5, se=FALSE)+
-  geom_smooth(method='lm', aes(Year,SHem), colour="blue", size=0.5, se=FALSE)
+  geom_smooth(method='lm', aes(Year,Glob), colour="red", size=0.3, se=FALSE)+
+  geom_smooth(method='lm', aes(Year,NHem),colour="green", size=0.3, se=FALSE)+
+  geom_smooth(method='lm', aes(Year,SHem), colour="blue", size=0.3, se=FALSE)
 ```
 
 
@@ -160,14 +160,9 @@ ggplot(temp_recent,aes(x=Year))+
 
 ```{r}
 # Show increasing CO2 over the years by month
-library(ggplot2)
-library(lubridate)
-
-CO2 <- read_csv("~/Desktop/Bayes Capstone/CO2.csv")
+CO2 <- read_csv("CO2.csv")
 
 ggplot(CO2, aes(x = month, y = average, color = year)) + geom_point()
-
-CO2 <- read_csv("CO2.csv")
 
 # Alter CO2 to remove unnecessary variable trend
 CO2 <- subset(CO2, select = -trend)
