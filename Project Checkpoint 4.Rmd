@@ -175,7 +175,11 @@ axis(side = 1,
 # Create colored time series 
 CO2$Date <- as.yearmon(paste(CO2$year, CO2$month), "%Y %m")
 
-ggplot(CO2, aes(Date, Average)) + geom_line(aes(colour = year))
+# Plot time series
+ggplot(CO2, aes(Date, Average)) + geom_line( aes(colour = year))
+
+# Add trend line
+ggplot(CO2, aes(Date, Average)) + geom_line( aes(colour = year)) + geom_smooth()
 
 ```
 
