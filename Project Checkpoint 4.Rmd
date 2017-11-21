@@ -22,7 +22,7 @@ library(reshape2)
 
 # Progress Made:
 
-We began our exploratory analysis of the data by creating plots of potential variables of interest (such as hurricane frequency, category frequency, maximum wind speed, NAO index) over time.  We looked for trends in these variables over time--trends that we could potentially use in our model...
+We began our exploratory analysis of the data by creating plots of potential variables of interest (such as hurricane frequency, category frequency, maximum wind speed, NAO index, and CO2 levels) over time.  We looked for trends in these variables over time--trends that we could potentially use in our model...
 
 
 # Group Member Roles:
@@ -32,9 +32,9 @@ We began our exploratory analysis of the data by creating plots of potential var
 * Aidan--created plots of CO2 data
 
 
-# Data:
+# Data
 
-# Hurricanes: 
+# Hurricanes
 ```{r}
 hurricane_data <- read_csv("Historical_Tropical_Storm_Tracks.csv")
 
@@ -93,9 +93,7 @@ ggplot(hurricanes_wind, aes(x = YEAR, y = AVG_WIND)) + geom_point() + ylab("Aver
 ```
 
 
-
-
-#Temperature:
+#Temperature
 ```{r}
 temp_data <- read.csv("ZonAnn.csv")
 
