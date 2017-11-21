@@ -1,0 +1,74 @@
+# Project Checkpoint 5
+
+**NAMES:**  Madeline Abbott, Aidan Teppema, Daisy Cho
+
+\
+\
+\
+\
+
+
+```{r include=FALSE}
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(zoo)
+library(lubridate)
+library(ggmap)
+library(reshape2)
+library(MASS)
+library(viridis)
+library(shiny)
+library(rjags)
+```
+
+# Progress Made:
+
+
+
+
+# Group Member Roles:
+
+* Madeline--
+* Daisy--
+* Aidan--
+
+
+# Research questions:
+
+### 1.
+
+Can we predict the location of future hurricanes based on past locations?
+
+* prior, likelihood, posterior (new location)
+
+### 2.
+
+Can we model the change in frequency of hurricanes based on trends in hurricane windspeed and category, temperature, CO2, and NAO index?
+
+prior: $\lambda_i \sim Pois(\lambda_i)$ ($\lambda_i$ is number of hurricanes in each year $i$)
+
+hyperpriors: $\lambda_i \sim exp(T*t + C*t + N*t)$ (T is temperature, C is CO2 concentration, and N is NAO index)
+
+$T \sim N(0.3, 1)$
+
+$C \sim N(368, 1/100)$
+
+$N \sim N(0.016, 1/0.01)$
+
+
+### 3. 
+
+Can we predict the severity of these disasters based on trends in hurricane windspeed, temperature, C02, and NAO index?
+
+
+
+# Building simple models
+
+## 1.
+
+Can we predict the location of future hurricanes based on past locations?
+
+
+* Poisson distribution, predict based off of past latitude and longitude coordinates
