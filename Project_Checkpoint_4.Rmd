@@ -149,14 +149,7 @@ ggplot(temp_recent,aes(x=Year))+
   geom_line(aes(y=Glob, color="Global"))+
   geom_line(aes(y=NHem, color="Northern Hemisphere"))+
   geom_line(aes(y=SHem, color="Southern Hemisphere"))+
-  ylab("Temperature Anomolies")
-
-
-
-ggplot(hurricanes_categories, aes(x = YEAR, y = TOTAL_HURRICANES, color = CAT, fill = CAT)) + 
-  geom_bar(stat = "identity") +
-  geom_line(data=temp_data, aes(x=Year, y=Glob)) + 
-  ylab("Temperature Anomolies") +
+  ylab("Temperature Anomolies")+
   geom_smooth(method='lm', aes(Year,Glob), colour="red", size=0.5, se=FALSE)+
   geom_smooth(method='lm', aes(Year,NHem),colour="green", size=0.5, se=FALSE)+
   geom_smooth(method='lm', aes(Year,SHem), colour="blue", size=0.5, se=FALSE)
