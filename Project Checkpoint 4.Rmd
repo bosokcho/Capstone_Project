@@ -14,6 +14,7 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(zoo)
+library(lubridate)
 
 #library(ggmap)
 library(reshape2)
@@ -176,17 +177,13 @@ axis(side = 1,
 # Create colored time series 
 CO2$Date <- as.yearmon(paste(CO2$year, CO2$month), "%Y %m")
 
-#plot(CO2$average ~ CO2$Date)
-ggplot(CO2, aes(Date, Average)) + geom_line( aes(colour = year))
+ggplot(CO2, aes(Date, Average)) + geom_line(aes(colour = year))
 
 ```
 
 ```{r}
 
 # Show increasing CO2 over the years by month
-library(ggplot2)
-library(lubridate)
-
 ggplot(CO2, aes(x = month, y = average, color = year)) + geom_point()
 
 ```
