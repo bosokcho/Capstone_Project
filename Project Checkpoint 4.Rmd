@@ -13,6 +13,7 @@ library(readr)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
+
 #library(ggmap)
 library(reshape2)
 ```
@@ -25,7 +26,7 @@ We began our exploratory analysis of the data by creating plots of potential var
 # Group Member Roles:
 
 * Madeline--created some plots of hurricane data and NAO index data
-* Daisy--
+* Daisy--created plots of temperature data
 * Aidan--
 
 
@@ -33,7 +34,7 @@ We began our exploratory analysis of the data by creating plots of potential var
 
 # Hurricanes: 
 ```{r}
-hurricane_data <- read_csv("~/Desktop/Historical_Tropical_Storm_Tracks.csv")
+hurricane_data <- read_csv("Historical_Tropical_Storm_Tracks.csv")
 
 hurricane_data<-na.omit(hurricane_data)
 hurricane_data<-subset(hurricane_data, select=-c(BTID, AD_TIME))
@@ -94,22 +95,30 @@ ggplot(hurricanes_wind, aes(x = YEAR, y = AVG_WIND)) + geom_point() + ylab("Aver
 
 #Temperature:
 ```{r}
-temp_data <- read_csv("~/Desktop/ZonAnn.csv")
+temp_data <- read.csv("ZonAnn.csv")
 
 temp_data[!complete.cases(temp_data),]
 temp_data<-na.omit(temp_data)
-
+temp_data<-temp_data[,-(5:15),drop=FALSE]
 dim(temp_data)
 names(temp_data)
 head(temp_data)
 summary(temp_data)
+
+# plot of Global, Northern Hemisphere, Southern Hemisphere deviation from corresponding mean by year
+ggplot(temp_data,aes(x=Year))+
+  geom_line(aes(y=Glob, color="Global"))+
+  geom_line(aes(y=NHem, color="Northern Hemisphere"))+
+  geom_line(aes(y=SHem, color="Southern Hemisphere"))+
+  ylab("Temperature Anomolies")
 ```
+
 
 
 
 # NAO Index Data
 ```{r}
-NAO_index1 <- read_csv("~/Desktop/NAO_index_monthly.csv", 
+NAO_index1 <- read_csv("NAO_index_monthly.csv", 
     col_types = cols(Apr = col_number(), 
         Aug = col_number(), Dec = col_number(), 
         Feb = col_number(), Jan = col_number(), 
@@ -160,3 +169,4 @@ ggplot(data = NAO_avgMonth, aes(x = Group.1, y = x)) + geom_point(color = "blue"
 
 
 
+>>>>>>> 83c14e4680ae0ecfea1bc29b2b709e63ab305b44
