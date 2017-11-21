@@ -147,31 +147,20 @@ ggplot(temp_recent,aes(x=Year))+
 
 ```{r}
 CO2 <- read_csv("CO2.csv")
+
 # Alter CO2 to remove unnecessary variable trend
 CO2 <- subset(CO2, select = -trend)
+
+# Alter CO2 to remove unnecessary variable trend
+#CO2 <- subset(CO2, select = -trend)
 
 # Create subset of CO2 data from year 2000 to show only fluxuations in CO2 levels throughout one year
-
-# Show increasing CO2 over the years by month
-ggplot(CO2, aes(x = month, y = average, color = year)) + geom_point()
-
-# Alter CO2 to remove unnecessary variable trend
-CO2 <- subset(CO2, select = -trend)
-
-
-# Create subset of CO2 data from year 2000
-# to show only fluxuations in CO2 levels throughout one year
 
 CO2_2000 <- subset(CO2, year == 2000)
 head(CO2_2000)
 
 # Plot this example
 plot(CO2_2000$average ~ CO2_2000$month)
-
-
-# Create time series to show variation over months and years
-Average <- ts(CO2$average, frequency = 12, start = 1980)
-
 
 # Create time series to show variation over months and years
 Average <- ts(CO2$average, frequency = 12, start = 1980)
@@ -187,9 +176,6 @@ axis(side = 1,
 
 # Create colored time series 
 CO2$Date <- as.yearmon(paste(CO2$year, CO2$month), "%Y %m")
-
-# Plot this time series
-ggplot(CO2, aes(Date, Average)) + geom_line( aes(colour = year))
 
 # Create colored time series 
 CO2$Date <- as.yearmon(paste(CO2$year, CO2$month), "%Y %m")
