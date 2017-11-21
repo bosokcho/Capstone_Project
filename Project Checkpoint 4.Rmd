@@ -1,6 +1,6 @@
-# Project Checkpoint 3
+# Project Checkpoint 4
 
-**NAME:**  Madeline Abbott, Aidan Teppema, Daisy Cho
+**NAMES:**  Madeline Abbott, Aidan Teppema, Daisy Cho
 
 \
 \
@@ -8,5 +8,165 @@
 \
 
 
+```{r include=FALSE}
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+#library(ggmap)
+library(reshape2)
+```
+
+# Progress Made:
+
+We began our exploratory analysis of the data by creating plots of potential variables of interest (such as hurricane frequency, category frequency, maximum wind speed, NAO index) over time.  We looked for trends in these variables over time--trends that we could potentially use in our model...
 
 
+# Group Member Roles:
+
+* Madeline--created some plots of hurricane data and NAO index data
+* Daisy--created plots of temperature data
+* Aidan--
+
+
+# Data:
+
+# Hurricanes: 
+```{r}
+hurricane_data <- read_csv("Historical_Tropical_Storm_Tracks.csv")
+
+hurricane_data<-na.omit(hurricane_data)
+hurricane_data<-subset(hurricane_data, select=-c(BTID, AD_TIME))
+
+#transform(hurricane_data, char = as.numeric(LAT))
+#transform(hurricane_data, char = as.numeric(LONG))
+
+hurricane_data$LAT <- as.numeric(hurricane_data$LAT)
+hurricane_data$LONG <- as.numeric(hurricane_data$LONG)
+
+dim(hurricane_data)
+names(hurricane_data)
+head(hurricane_data)
+summary(hurricane_data)
+```
+
+### Exploratory analysis
+```{r}
+# select only the hurricanes after 1950 (this is when the naming system started)
+hurricanes_recent <- hurricane_data %>%
+  filter(YEAR > 1949)
+```
+
+Some plots...
+```{r}
+# Total number of hurricanes per year
+hurricanes_per_year <- group_by(hurricanes_recent, YEAR) %>%
+  summarize(length(unique(NAME)))
+colnames(hurricanes_per_year)[2] <- "TOTAL_HURRICANES"
+ggplot(hurricanes_per_year, aes(x = YEAR, y = TOTAL_HURRICANES)) + geom_point()
+```
+
+```{r}
+# Total number of hurricanes of each category per year
+hurricanes_categories <- group_by(hurricanes_recent, YEAR) %>%
+  count(CAT)
+colnames(hurricanes_categories)[3] <- "TOTAL_HURRICANES"
+ggplot(hurricanes_categories, aes(x = YEAR, y = TOTAL_HURRICANES, color = CAT, fill = CAT)) + geom_bar(stat = "identity")
+```
+
+```{r fig.height = 2, fig.width = 8}
+ggplot(hurricanes_categories, aes(x = YEAR, y = TOTAL_HURRICANES, color = CAT, fill = CAT)) + geom_bar(stat = "identity", position = position_dodge(width = 0.9))
+```
+
+```{r}
+# Average max wind speed by year
+hurricanes_wind <- group_by(hurricanes_recent, YEAR) %>%
+  summarize(mean(WIND_KTS))
+colnames(hurricanes_wind)[2] <- "AVG_WIND"
+ggplot(hurricanes_wind, aes(x = YEAR, y = AVG_WIND)) + geom_point() + ylab("Average wind speed (kts)")
+
+# If you want to save a plot...
+#ggsave("hurri_categories2.pdf", plot = last_plot(), height = 5, width = 10)
+```
+
+
+
+
+#Temperature:
+```{r}
+temp_data <- read.csv("ZonAnn.csv")
+
+temp_data[!complete.cases(temp_data),]
+temp_data<-na.omit(temp_data)
+temp_data<-temp_data[,-(5:15),drop=FALSE]
+dim(temp_data)
+names(temp_data)
+head(temp_data)
+summary(temp_data)
+
+# plot of Global, Northern Hemisphere, Southern Hemisphere deviation from corresponding mean by year
+ggplot(temp_data,aes(x=Year))+
+  geom_line(aes(y=Glob, color="Global"))+
+  geom_line(aes(y=NHem, color="Northern Hemisphere"))+
+  geom_line(aes(y=SHem, color="Southern Hemisphere"))+
+  ylab("Temperature Anomolies")
+```
+
+
+
+
+# NAO Index Data
+```{r}
+NAO_index1 <- read_csv("NAO_index_monthly.csv", 
+    col_types = cols(Apr = col_number(), 
+        Aug = col_number(), Dec = col_number(), 
+        Feb = col_number(), Jan = col_number(), 
+        Jul = col_number(), Jun = col_number(), 
+        Mar = col_number(), May = col_number(), 
+        Nov = col_number(), Oct = col_number(), 
+        Sep = col_number()))
+
+NAO_index2 <- NAO_index1[, -c(14)]
+
+NAO_index3 <- NAO_index2 %>%
+  rename(year = X1) %>%
+  mutate(Jul = replace(Jul, Jul < -50| Jul > 50, "")) %>%
+  mutate(Aug = replace(Aug, Aug < -50| Aug > 50, "")) %>%
+  mutate(Sep = replace(Sep, Sep < -50| Sep > 50, "")) %>%
+  mutate(Oct = replace(Oct, Oct < -50| Oct > 50, "")) %>%
+  mutate(Nov = replace(Nov, Nov < -50| Nov > 50, "")) %>%
+  mutate(Dec = replace(Dec, Dec < -50| Dec > 50, ""))
+  
+
+NAO_index <- NAO_index3[-nrow(NAO_index3),] 
+
+dim(NAO_index)
+names(NAO_index)
+head(NAO_index)
+summary(NAO_index)
+
+
+# remove 2017 (data for year is incomplete)
+NAO_index <- head(NAO_index, -1) 
+
+# reshape table
+NAO_index <- melt(NAO_index, id=c("year"))
+colnames(NAO_index)[2] <- "month"
+colnames(NAO_index)[3] <- "index"
+
+NAO_index$year <- as.factor(NAO_index$year)
+NAO_index$index <- as.numeric(NAO_index$index)
+
+# group by month
+NAO_avgMonth <- aggregate(NAO_index[, 3], list(NAO_index$month), mean)
+
+# plot
+ggplot(data = NAO_avgMonth, aes(x = Group.1, y = x)) + geom_point(color = "blue") + xlab("month") + ylab("NAO index, averaged across all years")
+```
+
+
+
+
+
+>>>>>>> 83c14e4680ae0ecfea1bc29b2b709e63ab305b44
