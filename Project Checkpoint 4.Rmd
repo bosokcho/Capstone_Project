@@ -60,6 +60,20 @@ hurricanes_recent <- hurricane_data %>%
 
 Some plots...
 ```{r}
+# Plotting hurricane denisty by location
+# creating a sample data.frame with your lat/lon points
+transform(hurricanes_recent, char = as.numeric(LAT))
+transform(hurricanes_recent, char = as.numeric(LONG))
+
+# getting the map
+map_hurricanes <- get_map(location = c(lon = mean(hurricanes_recent$LONG), lat = mean(hurricanes_recent$LAT)), zoom = 2, maptype = "terrain", scale = 2)
+
+# plotting the map with some points on it
+ggmap(map_hurricanes) +
+  geom_point(data = hurricanes_recent, aes(x = LONG, y = LAT, alpha = 0.1, color = density)) + scale_color_viridis() + guides(size=FALSE)
+```
+
+```{r}
 # Total number of hurricanes per year
 hurricanes_per_year <- group_by(hurricanes_recent, YEAR) %>%
   summarize(length(unique(NAME)))
@@ -78,6 +92,16 @@ ggplot(hurricanes_categories, aes(x = YEAR, y = TOTAL_HURRICANES, color = CAT, f
 ```{r fig.height = 2, fig.width = 8}
 ggplot(hurricanes_categories, aes(x = YEAR, y = TOTAL_HURRICANES, color = CAT, fill = CAT)) + geom_bar(stat = "identity", position = position_dodge(width = 0.9))
 ```
+
+```{r}
+# Average pressure by year
+hurricane_pressure <- group_by(hurricanes_recent, YEAR) %>%
+  summarize(mean(PRESSURE))
+colnames(hurricane_pressure)[2] <- 'AVG_PRESSURE'
+colnames(hurricane_pressure)[1] <- "YEAR"
+ggplot(hurricane_pressure, aes(x = YEAR, y = AVG_PRESSURE)) + geom_point() + ylab("Average pressure")
+```
+
 
 ```{r}
 # Average max wind speed by year
