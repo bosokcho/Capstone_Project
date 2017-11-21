@@ -23,7 +23,7 @@ library(viridis)
 
 # Progress Made:
 
-We began our exploratory analysis of the data by creating plots of potential variables of interest (such as hurricane frequency, category frequency, maximum wind speed, NAO index, and CO2 levels) over time.  We looked for trends in these variables over time--trends that we could potentially use in our model...
+We began our exploratory analysis of the data by creating plots of potential variables of interest (such as hurricane frequency, category frequency, maximum wind speed, NAO index, and CO2 levels) over time.  We looked for trends in these variables over time--trends that we could potentially use in our model.  This visuals help exlain the variables and we plan to adapt many of these plots to include them in our final report.  Maybe even in a shiny ap!
 
 
 # Group Member Roles:
