@@ -104,7 +104,7 @@ colnames(tempN) <- c("YEAR", "temp")
 hurricanes_per_year2 <- merge(x = hurricanes_per_year, y = tempN, by = "YEAR", all.x = TRUE)
 
 # CO2 Data
-CO2 <- read_csv("~/Desktop/Bayes Capstone/CO2.csv")
+CO2 <- read_csv("CO2.csv")
 
 # Alter CO2 to remove unnecessary variable trend
 CO2 <- subset(CO2, select = -trend)
@@ -361,7 +361,7 @@ summary(hurricane_freq_sample1)
 
 Can we model the change in frequency of hurricanes based on trends in hurricane windspeed and category, temperature, CO2, and NAO index?
 
-```{r}
+
 # get frequency data
 hurricanes_recent <- hurricane_data %>%
   filter(YEAR > 1949)
@@ -543,7 +543,7 @@ ggplot(temp_recent,aes(x=Year))+
 
 #CO2
 
-```{r CO2}
+
 # Show increasing CO2 over the years by month
 CO2 <- read_csv("CO2.csv")
 
@@ -603,7 +603,7 @@ ggplot(CO2, aes(x = month, y = average, color = year)) + geom_point()
 
 
 # NAO Index Data
-```{r NAO Index}
+
 NAO_index1 <- read_csv("NAO_index_monthly.csv", 
     col_types = cols(Apr = col_number(), 
         Aug = col_number(), Dec = col_number(), 
