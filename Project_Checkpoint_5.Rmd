@@ -66,12 +66,7 @@ Can we predict the severity of these disasters based on trends in hurricane wind
 
 # Building simple models
 
-## 1.
 
-Can we predict the location of future hurricanes based on past locations?
-
-
-* Poisson distribution, predict based off of past latitude and longitude coordinates
 
 
 Loading the data
@@ -171,11 +166,60 @@ colnames(NAO_yr) <- c("YEAR", "avg_NAO")
 # join with hurricane data
 hurricanes_per_year4 <- merge(x = hurricanes_per_year3, y = NAO_yr, by = "YEAR", all.x = TRUE)
 
+# Add Windspeed
+windspeed <- hurricane_data %>%
+  group_by(YEAR) %>%
+  summarise(avg_windspeed = mean(WIND_KTS))
+
+# join with hurricane data
+hurricanes_per_year5 <- merge(x = hurricanes_per_year4, y = windspeed, by = "YEAR", all.x = TRUE)
+
 # Remove all rows with missing data
-hurricanes_per_year_clean<-na.omit(hurricanes_per_year4)
+hurricanes_per_year_clean<-na.omit(hurricanes_per_year5)
+
+
+
 
 ```
 
+
+## 1.
+
+Can we predict the location of future hurricanes based on past locations?
+
+
+* Poisson distribution, predict based off of past latitude and longitude coordinates
+
+
+## 2. 
+
+### Can we model the change in frequency of hurricanes based on trends in hurricane windspeed and category, temperature, CO2, and NAO index?
+
+### Model 1:
+
+Let:
+
+$Y_{t} =$ total hurricanes in year $t$
+
+$X_{1t} =$ average yearly temperature in year $t$
+
+$X_{2t} =$ yearly CO2 concentration in year $t$
+
+$X_{3t} =$ NAO index in year $t$
+
+We propose the following model:
+
+$$Y_t | \beta_0, \beta_1, \beta_2, \beta_3 \sim N(\beta_0 + \beta_1X_{1t} + \beta_2X_{2t} + \beta_3X_{3t},\theta^2)$$
+
+$$\beta_0 \sim N(0, 1000^2)$$
+
+$$\beta_1 \sim N(0, 1000^2)$$
+
+$$\beta_2 \sim N(0, 1000^2)$$
+
+$$\beta_3 \sim N(0, 1000^2)$$
+
+$$(\theta^2)^{-1} \sim Gamma(0.001, 0.001)$$
 
 Plot distribution of hurricanes per year
 ```{r}
@@ -198,40 +242,118 @@ ggplot(hurricanes_per_year_clean, aes(x = avg_NAO, y = TOTAL_H)) + geom_point(co
 ```
 
 
+```{r}
+library(rjags)
 
-
-
-
-# start r jags here!
-location <- data.frame(hurricane_data$LONG, hurricane_data$LAT)
+#y <- lihurricanes_per_year_clean$TOTAL_H
 
 # specify the model
-hurricane_model1 <- "model{
-
+hurricane_freq_model1 <- "model{
   # Data
-  for (i in 1:length(location)) {
-    location[i] ~ dnorm(mu, tau) #dnorm in rjags takes the PRECISION, not std
-  }
-
+  for (t in 1:length(y)) {
+    y[t] ~ dnorm(beta0 + beta1*x1[t] + beta2*x2[t] + beta3*x3[t], tau) #PRECISION
+    }
 
   #Priors
-  mu ~ dnorm(24, 1/100)  #uses PRECISION
-  tau ~ dgamma(3, 5)
+  beta0 ~ dnorm(0, 1/(1000)^2) #PRECISION
+  beta1 ~ dnorm(0, 1/(1000)^2) #PRECISION
+  beta2 ~ dnorm(0, 1/(1000)^2) #PRECISION
+  beta3 ~ dnorm(0, 1/(1000)^2) #PRECISION
+  tau ~ dgamma(0.001, 0.001)
 }"
 
 
-# set up an algorithm to simulate the posterior by combining the model (grade_model) and data (x)
+# set up an algorithm to simulate the posterior by combining the model (hurricane_freq_model1) and data (y)
 # set the random number seed
-hurricane_jags1 <- jags.model(textConnection(hurricane_model1), data=list(x=c(lat, long)), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+hurricane_freq_jags1 <- jags.model(textConnection(hurricane_freq_model1), data=list(y=hurricanes_per_year_clean$TOTAL_H, x1=hurricanes_per_year_clean$temp, x2=hurricanes_per_year_clean$avg_CO2, x3=hurricanes_per_year_clean$avg_NAO), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
 
 # simulate a sample from the posterior
 # note that we specify both mu and tau variables
-grades_sim <- coda.samples(grades_jags, variable.names = c("mu", "tau"), n.iter=10000)
+hurricane_freq_sim1 <- coda.samples(hurricane_freq_jags1, variable.names = c("beta0", "beta1", "beta2", "beta3", "tau"), n.iter=100)
 
 # store the samples in a data frame:
-grades_sample <- data.frame(step = 1:10000, grades_sim[[1]])
-head(grades_sample)
+hurricane_freq_sample1 <- data.frame(step = 1:100, hurricane_freq_sim1[[1]])
+head(hurricane_freq_sample1)
+
+summary(hurricane_freq_sample1)
+#plot(hurricane_freq_sample1)
 ```
+
+## Model 2:
+
+
+Let:
+
+$Y_{t} =$ total hurricanes in year $t$
+
+$X_{1t} =$ average yearly temperature in year $t$
+
+$X_{2t} =$ yearly CO2 concentration in year $t$
+
+$X_{3t} =$ NAO index in year $t$
+
+We propose the following model:
+
+$$Y_t | \beta_{t}, \beta_{1t}, \beta_{2t}, \beta_{3t} \sim N(\beta_0 + \beta_{1t}X_{1t} + \beta_{2t}X_{2t} + \beta_{3t}X_{3t}, \theta^2)$$
+
+$$\beta_0 \sim N(\mu_{0t}, 1000^2)$$
+
+$$\beta_{1t} \sim N(\mu_{1t}, 1000^2)$$
+
+$$\beta_{2t} \sim N(\mu_{2t}, 1000^2)$$
+
+$$\beta_{3t} \sim N(\mu_{3t}, 1000^2)$$
+
+$$(\theta^2)^{-1} \sim Gamma(0.001, 0.001)$$
+
+$$\mu_{it} \sim N(0, 1000^2)$$
+
+```{r}
+foo <- hurricane_data %>%
+  group_by(YEAR) %>%
+  summarise(avg = mean(WIND_KTS))
+
+
+library(rjags)
+
+#y <- lihurricanes_per_year_clean$TOTAL_H
+
+# specify the model
+hurricane_freq_model1 <- "model{
+  # Data
+  for (t in 1:length(y)) {
+    y[t] ~ dnorm(beta0 + beta1*x1[t] + beta2*x2[t] + beta3*x3[t], tau) #PRECISION
+    }
+
+  #Priors
+  beta0 ~ dnorm(0, 1/(1000)^2) #PRECISION
+  beta1 ~ dnorm(0, 1/(1000)^2) #PRECISION
+  beta2 ~ dnorm(0, 1/(1000)^2) #PRECISION
+  beta3 ~ dnorm(0, 1/(1000)^2) #PRECISION
+  tau ~ dgamma(0.001, 0.001)
+
+  #Hyperpriors
+  mu ~ 
+}"
+
+
+# set up an algorithm to simulate the posterior by combining the model (hurricane_freq_model1) and data (y)
+# set the random number seed
+hurricane_freq_jags1 <- jags.model(textConnection(hurricane_freq_model1), data=list(y=hurricanes_per_year_clean$TOTAL_H, x1=hurricanes_per_year_clean$temp, x2=hurricanes_per_year_clean$avg_CO2, x3=hurricanes_per_year_clean$avg_NAO), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+
+# simulate a sample from the posterior
+# note that we specify both mu and tau variables
+hurricane_freq_sim1 <- coda.samples(hurricane_freq_jags1, variable.names = c("beta0", "beta1", "beta2", "beta3", "tau"), n.iter=100)
+
+# store the samples in a data frame:
+hurricane_freq_sample1 <- data.frame(step = 1:100, hurricane_freq_sim1[[1]])
+head(hurricane_freq_sample1)
+
+summary(hurricane_freq_sample1)
+#plot(hurricane_freq_sample1)
+```
+
+
 
 
 
