@@ -1,0 +1,35 @@
+# Project Checkpoint 6
+
+**NAMES:**  Madeline Abbott, Aidan Teppema, Daisy Cho
+
+\
+\
+\
+\
+
+
+```{r include=FALSE}
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(zoo)
+library(lubridate)
+library(ggmap)
+library(reshape2)
+library(MASS)
+library(viridis)
+#library(shiny)
+library(rjags)
+```
+
+# Progress Made:
+
+
+# Group Member Roles:
+
+* Madeline--
+* Daisy--
+* Aidan--
+
+
