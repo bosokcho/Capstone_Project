@@ -23,7 +23,7 @@ library(viridis)
 
 # Progress Made:
 
-We began our exploratory analysis of the data by creating plots of potential variables of interest (such as hurricane frequency, category frequency, maximum wind speed, NAO index, and CO2 levels) over time.  We looked for trends in these variables over time--trends that we could potentially use in our model...
+We began our exploratory analysis of the data by creating plots of potential variables of interest (such as hurricane frequency, category frequency, maximum wind speed, NAO index, and CO2 levels) over time.  We looked for trends in these variables over time--trends that we could potentially use in our model.  This visuals help exlain the variables and we plan to adapt many of these plots to include them in our final report.  Maybe even in a shiny ap!
 
 
 # Group Member Roles:
@@ -131,7 +131,7 @@ ggplot(hurricanes_wind, aes(x = YEAR, y = AVG_WIND)) + geom_point() + ylab("Aver
 
 
 #Temperature
-```{r}
+```{r Temperature}
 temp_data <- read.csv("ZonAnn.csv")
 
 temp_data[!complete.cases(temp_data),]
@@ -158,7 +158,7 @@ ggplot(temp_recent,aes(x=Year))+
 
 #CO2
 
-```{r}
+```{r CO2}
 # Show increasing CO2 over the years by month
 CO2 <- read_csv("CO2.csv")
 <<<<<<< HEAD
@@ -221,7 +221,7 @@ ggplot(CO2, aes(x = month, y = average, color = year)) + geom_point()
 
 
 # NAO Index Data
-```{r}
+```{r NAO Index}
 NAO_index1 <- read_csv("NAO_index_monthly.csv", 
     col_types = cols(Apr = col_number(), 
         Aug = col_number(), Dec = col_number(), 
