@@ -38,7 +38,7 @@ We formulated 3 potential, relevant research questions. We designed models for t
 # Research questions:
 
 ### 1.
-Can we model the durations of hurricanes over the years?
+Can we model  the trend of average durations of hurricanes over the years?
 
 Model 1:
 
@@ -209,8 +209,8 @@ duration_model <- "model{
     }
 
     #Priors
-    mu ~ dnorm(0,1/1000)
-    tau ~ dgamma(2, 0.05)
+    mu ~ dnorm(6.37,1/1000)
+    tau ~ dgamma(9, 6)
 }"
 
 
@@ -223,27 +223,88 @@ duration_sim <- coda.samples(duration_jags, variable.names=c("mu","tau", "theta"
 
 duration_samples <- data.frame(step=1:10000, duration_sim[[1]])
 head(duration_samples)
+plot(duration_sim)
+summary(duration_sim)
+```
+
+```{r message=FALSE, warning=FALSE}
+data(foo)
+
+## 50% of the sample size
+smp_size <- floor(0.50 * nrow(foo))
+
+## set the seed to make your partition reproductible
+set.seed(123)
+train_ind <- sample(seq_len(nrow(foo)), size = smp_size)
+
+foo_train <- foo[train_ind, ]
+foo_test <- foo[-train_ind, ]
 ```
 
 ```{r}
+library(rjags)
+
 #specify the model
 duration2_model <- "model{
     #Data
     for(i in 1:length(x)) {
-        x[i] ~ dnorm(mu,tau)
+        y[i] ~ dnorm(beta0 +beta1*x[i],tau)
     }
 
     #Priors
-    mu ~ dnorm(6.37,1/10)
+    beta0 ~ dnorm(6.37,1/1000)
+    beta1~dnorm(0,1/1000)
     tau ~ dgamma(9, 6)
 }"
 
-duration2_jags <- jags.model(textConnection(duration2_model), data=list(x=foo$Average_Duration), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
 
-duration2_sim <- coda.samples(duration2_jags, variable.names=c("mu","tau"), n.iter=10000)
 
-duration2_samples <- data.frame(step=1:10000, duration2_sim[[1]])
+duration2_jags <- jags.model(textConnection(duration2_model), data=list(x=foo_train$Average_Duration), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+
+
+
+duration2_sim <- coda.samples(duration2_jags, variable.names=c("beta0","beta1","tau"), n.iter=10000)
+
+duration2_samples <- data.frame(step=1:10000, duration_sim[[1]])
 head(duration2_samples)
+plot(duration2_sim)
+summary(duration2_sim)
+```
+```{r}
+library(rjags)
+
+#specify the model
+duration3_model <- "model{
+    #Data
+    for(i in 1:length(x)) {
+        y[i] ~ dnorm(beta0 +beta1*x[i],tau)
+    }
+
+    #Priors
+    beta0 ~ dnorm(6.37,1/1000)
+    beta1~dnorm(0,1/1000)
+    tau ~ dgamma(9, 6)
+}"
+
+
+
+duration3_jags <- jags.model(textConnection(duration3_model), data=list(x=foo_test$Average_Duration), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+
+
+
+duration3_sim <- coda.samples(duration2_jags, variable.names=c("beta0","beta1","tau"), n.iter=10000)
+
+duration3_samples <- data.frame(step=1:10000, duration_sim[[1]])
+head(duration3_samples)
+plot(duration3_sim)
+summary(duration3_sim)
+```
+
+```{r}
+summary(foo_test)
+head(foo_test)
+mean(foo_test$Average_Duration)
+quantile(foo_test$Average_Duration, c(0.025, 0.975))
 ```
 
 
