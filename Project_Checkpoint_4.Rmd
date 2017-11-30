@@ -148,13 +148,13 @@ summary(temp_recent)
 
 # plot of Global, Northern Hemisphere, Southern Hemisphere deviation from corresponding mean by year
 ggplot(temp_recent,aes(x=Year))+
-  geom_line(aes(y=Glob, color="Global"))+
+  #geom_line(aes(y=Glob, color="Global"))+
   geom_line(aes(y=NHem, color="Northern Hemisphere"))+
-  geom_line(aes(y=SHem, color="Southern Hemisphere"))+
+  #geom_line(aes(y=SHem, color="Southern Hemisphere"))+
   ylab("Temperature Anomolies")+
-  geom_smooth(method='lm', aes(Year,Glob), colour="red", size=0.5, se=FALSE)+
+  #geom_smooth(method='lm', aes(Year,Glob), colour="red", size=0.5, se=FALSE)+
   geom_smooth(method='lm', aes(Year,NHem),colour="green", size=0.5, se=FALSE)+
-  geom_smooth(method='lm', aes(Year,SHem), colour="blue", size=0.5, se=FALSE)
+  #geom_smooth(method='lm', aes(Year,SHem), colour="blue", size=0.5, se=FALSE)
 ```
 
 

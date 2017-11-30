@@ -1,4 +1,4 @@
-# Project Checkpoint 5
+# Project Checkpoint 6
 
 **NAMES:**  Madeline Abbott, Aidan Teppema, Daisy Cho
 
@@ -21,53 +21,7 @@ library(MASS)
 library(viridis)
 #library(shiny)
 library(rjags)
-library(naivebayes)
 ```
-
-# Progress Made:
-
-We formulated 3 potential, relevant research questions. We designed models for these and created rjags simulations to simulate these models.
-
-
-# Group Member Roles:
-
-* Madeline--questions 2: constructed simple models for predicting hurricane frequency based on NOA index, CO2 levels, and temperature trends.
-* Daisy--constructed 2 models for research question one to model durations of hurricanes over the years.
-* Aidan--worked on merging wind speed data and designed models for research question 3
-
-# Research questions:
-
-### 1.
-Can we model  the trend of average durations of hurricanes over the years?
-
-Model 1:
-
-Prior: $X\sim Norm(\mu,\tau)$
-
-Hyperpriors:
-$\mu\sim (0, 1000)$
-
-$\tau \sim (2, 0.05)$
-
-Model 2:
-
-Prior: $X\sim Norm(mu, tau$
-
-Given length(x)= number of years
-$\mu\sim (6.37, 10^2)$
-
-$\tau \sim (9, 6)$
-
-### 2.
-
-Can we predict the severity of these disasters based on trends in hurricane wind speed, temperature, C02, and NAO index? (figure out categories maybe select= c(categories 1-5))
-
-### 3.
-
-Can we predict the intensity of wind speed of these disasters based on trends in average yearly temperature, average yearly C02, and yearly NAO index?
-
-## Building simple models
-
 
 ```{r include=FALSE}
 # Loading the Data
@@ -79,7 +33,7 @@ hurricane_data<-na.omit(hurricane_data)
 hurricane_data<-subset(hurricane_data, select=-c(BTID, AD_TIME))
 
 # select only hurricanes in 1950 and after
-recent_hurricanes <- hurricane_data[hurricane_data$YEAR >= 1950, ]
+recent_hurricanes <- hurricane_data[hurricane_data$YEAR >= 1950, ] 
 
 # table of hurricanes per year
 hurricanes_per_year <- recent_hurricanes %>%
@@ -123,13 +77,13 @@ hurricanes_per_year3 <- merge(x = hurricanes_per_year2, y = CO2_yr, by = "YEAR",
 # FIX THIS (bc only 1980 onward available)
 
 # NAO Index Data
-NAO_index1 <- read_csv("NAO_index_monthly.csv",
-    col_types = cols(Apr = col_number(),
-        Aug = col_number(), Dec = col_number(),
-        Feb = col_number(), Jan = col_number(),
-        Jul = col_number(), Jun = col_number(),
-        Mar = col_number(), May = col_number(),
-        Nov = col_number(), Oct = col_number(),
+NAO_index1 <- read_csv("NAO_index_monthly.csv", 
+    col_types = cols(Apr = col_number(), 
+        Aug = col_number(), Dec = col_number(), 
+        Feb = col_number(), Jan = col_number(), 
+        Jul = col_number(), Jun = col_number(), 
+        Mar = col_number(), May = col_number(), 
+        Nov = col_number(), Oct = col_number(), 
         Sep = col_number()))
 
 NAO_index2 <- NAO_index1[, -c(14)]
@@ -142,11 +96,11 @@ NAO_index3 <- NAO_index2 %>%
   mutate(Oct = replace(Oct, Oct < -50| Oct > 50, "")) %>%
   mutate(Nov = replace(Nov, Nov < -50| Nov > 50, "")) %>%
   mutate(Dec = replace(Dec, Dec < -50| Dec > 50, ""))
-
-NAO_index <- NAO_index3[-nrow(NAO_index3),]
+  
+NAO_index <- NAO_index3[-nrow(NAO_index3),] 
 
 # remove 2017 (data for year is incomplete)
-NAO_index <- head(NAO_index, -1)
+NAO_index <- head(NAO_index, -1) 
 
 # reshape table
 NAO_index <- melt(NAO_index, id=c("year"))
@@ -171,144 +125,25 @@ hurricanes_per_year4 <- merge(x = hurricanes_per_year3, y = NAO_yr, by = "YEAR",
 hurricanes_per_year_clean<-na.omit(hurricanes_per_year4)
 ```
 
+# Progress Made:
 
 
+# Group Member Roles:
+
+* Madeline--
+* Daisy--
+* Aidan--
 
 
-## 1.
-```{r}
-hurricanes_recent<-recent_hurricanes[!(recent_hurricanes$NAME=="NOTNAMED"),]
+# Modeling:
 
-# Hurricane data only looking at Date and name
-hurricane_time<-subset(hurricanes_recent, select = c(NAME,YEAR,MONTH,DAY))
-#Group data by year and name and subtracting starting time from end time for each hurricane (duration)
-foo <- hurricane_time %>%
-  group_by(YEAR, NAME) %>%
-  mutate(date = as.Date(paste(YEAR, MONTH, DAY, sep='-')), "%Y-%m-%d") %>%
-  summarise(duration = max(date) - min(date))
-#removed outlier
-foo<-foo[!(foo$YEAR==1954 & foo$NAME=="ALICE"),]
-# Averaging duration per year
-foo<-group_by(foo, YEAR)%>%
-  summarise(mean(duration))
-colnames(foo)[2] <- "Average_Duration"
-ggplot(foo, aes(x=Average_Duration))+
-  geom_histogram(boundary=0,color="white", aes(y=..density..))
-ggplot(foo,aes(x=YEAR, y=Average_Duration))+
-  geom_line()
-```
-
-```{r}
-library(rjags)
-
-#specify the model
-duration_model <- "model{
-    #Data
-    for(i in 1:length(x)) {
-        x[i] ~ dnorm(mu,tau)
-    }
-
-    #Priors
-    mu ~ dnorm(6.37,1/1000)
-    tau ~ dgamma(9, 6)
-}"
+\
 
 
-
-duration_jags <- jags.model(textConnection(duration_model), data=list(x=foo$Average_Duration), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
-
+### Question 1.
 
 
-duration_sim <- coda.samples(duration_jags, variable.names=c("mu","tau", "theta"), n.iter=10000)
-
-duration_samples <- data.frame(step=1:10000, duration_sim[[1]])
-head(duration_samples)
-plot(duration_sim)
-summary(duration_sim)
-```
-
-```{r message=FALSE, warning=FALSE}
-data(foo)
-
-## 50% of the sample size
-smp_size <- floor(0.50 * nrow(foo))
-
-## set the seed to make your partition reproductible
-set.seed(123)
-train_ind <- sample(seq_len(nrow(foo)), size = smp_size)
-
-foo_train <- foo[train_ind, ]
-foo_test <- foo[-train_ind, ]
-```
-
-```{r}
-library(rjags)
-
-#specify the model
-duration2_model <- "model{
-    #Data
-    for(i in 1:length(x)) {
-        y[i] ~ dnorm(beta0 +beta1*x[i],tau)
-    }
-
-    #Priors
-    beta0 ~ dnorm(6.37,1/1000)
-    beta1~dnorm(0,1/1000)
-    tau ~ dgamma(9, 6)
-}"
-
-
-
-duration2_jags <- jags.model(textConnection(duration2_model), data=list(x=foo_train$Average_Duration), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
-
-
-
-duration2_sim <- coda.samples(duration2_jags, variable.names=c("beta0","beta1","tau"), n.iter=10000)
-
-duration2_samples <- data.frame(step=1:10000, duration_sim[[1]])
-head(duration2_samples)
-plot(duration2_sim)
-summary(duration2_sim)
-```
-```{r}
-library(rjags)
-
-#specify the model
-duration3_model <- "model{
-    #Data
-    for(i in 1:length(x)) {
-        y[i] ~ dnorm(beta0 +beta1*x[i],tau)
-    }
-
-    #Priors
-    beta0 ~ dnorm(6.37,1/1000)
-    beta1~dnorm(0,1/1000)
-    tau ~ dgamma(9, 6)
-}"
-
-
-
-duration3_jags <- jags.model(textConnection(duration3_model), data=list(x=foo_test$Average_Duration), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
-
-
-
-duration3_sim <- coda.samples(duration2_jags, variable.names=c("beta0","beta1","tau"), n.iter=10000)
-
-duration3_samples <- data.frame(step=1:10000, duration_sim[[1]])
-head(duration3_samples)
-plot(duration3_sim)
-summary(duration3_sim)
-```
-
-```{r}
-summary(foo_test)
-head(foo_test)
-mean(foo_test$Average_Duration)
-quantile(foo_test$Average_Duration, c(0.025, 0.975))
-```
-
-
-### 2.
+### Question 2.
 
 Can we model the change in frequency of hurricanes based on trends in hurricane windspeed and category, temperature, CO2, and NAO index?
 
@@ -334,7 +169,7 @@ ggplot(hurricanes_per_year_clean, aes(x = avg_NAO, y = TOTAL_H)) + geom_point(co
 ```
 
 
-### Model 1:
+### Model 1: 
 
 Let:
 
@@ -468,39 +303,8 @@ summary(hurricane_freq_sample2)
 ```
 
 
-## 3.
-
-Can we predict the severity of these disasters based on trends in hurricane windspeed and category, temperature, C02, and NAO index?
-
-This is an example rjags for this model. It doesn't run yet because of issues with data merging.
+### Questions 3.
 
 
-*specify the model
-windSpeed_model <- "model{
-    #Data
-    for(i in 1:length(y)) {
-        y[i] ~ dnorm(beta0 + beta1[i] + beta2[i] + beta3[i], tau)
-
-    }
-    #Priors
-    beta1 ~ dnorm(0, 1/100) #PRECISION
-    beta2 ~ dnorm(0, 1/100) #PRECISION
-    beta3 ~ dnorm(0, 1/100) #PRECISION
-    tau ~ dgamma(1,10)
-
-}"
-
-*set up an algorithm to simulate the posterior by
-*combining the model (games_model) and data (x)
-*set the random number seed
-windSpeed_jags <- jags.model(textConnection(windSpeed_model), data=list(y=hurricane_data$WIND_KTS, beta1=HURRICANES$av_CO2, beta2=HURRICANES$temp,beta3=HURRICANES$avg_NAO),
-                    inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
-
-*simulate a sample from the posterior
-*note that we specify both mu and tau variables
-windSpeed_sim <- coda.samples(windSpeed_jags, variable.names=c("beta0","beta1","beta2"), n.iter=10000)
 
 
-*store the samples in a data frame:
-windSpeed_sample <- data.frame(step=1:10000, BB_sim[[1]])
-head(windSpeed_sample)
