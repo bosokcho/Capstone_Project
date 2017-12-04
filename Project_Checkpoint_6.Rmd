@@ -34,11 +34,26 @@ hurricane_data<-subset(hurricane_data, select=-c(BTID, AD_TIME))
 
 # select only hurricanes in 1950 and after
 recent_hurricanes <- hurricane_data[hurricane_data$YEAR >= 1950, ] 
+recent_hurricanes <- recent_hurricanes[!(recent_hurricanes$NAME=="NOTNAMED"),]
 
 # table of hurricanes per year
 hurricanes_per_year <- recent_hurricanes %>%
   group_by(YEAR) %>%
   summarise(TOTAL_H = n_distinct(NAME))
+
+#Format Coordinates
+dat<-as.character(recent_hurricanes$LAT)
+new<-substr(dat,1,nchar(dat))
+lat<-as.numeric(new)
+dat<-as.character(recent_hurricanes$LONG)
+new<-substr(dat,1,nchar(dat))
+long<-as.numeric(new)
+long<- -abs(long)
+coord<-as.data.frame(long)
+#Add year and name
+year<-as.character(recent_hurricanes$YEAR)
+name<-as.character(recent_hurricanes$NAME)
+coord<-cbind(year, name, coord, lat)
 
 
 # Temperature Data
