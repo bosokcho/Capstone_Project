@@ -155,10 +155,8 @@ hurricanes_per_year_clean<-na.omit(hurricanes_per_year4)
 \
 
 
+
 ### Question 1.
-
-
-### Question 2.
 
 Can we model the change in frequency of hurricanes based on trends in hurricane windspeed and category, temperature, CO2, and NAO index?
 
@@ -317,6 +315,163 @@ summary(hurricane_freq_sample2)
 #plot(hurricane_freq_sample1)
 ```
 
+### Question 1.
+
+Can we model  the trend of average durations of hurricanes over the years?
+
+Model 1:
+
+Prior: 
+$$X \sim Norm(\mu,\tau)$$
+
+Hyperpriors:
+$$\mu \sim N(0, 1000)$$
+
+$$\tau \sim \Gamma(2, 0.05)$$
+
+Model 2:
+
+Prior: $$X \sim N(mu, tau)$$
+
+Given length(x)= number of years
+$$\mu\sim N(6.37, 10^2)$$
+
+$$\tau \sim \Gamma(9, 6)$$
+
+Create new dataset on average durations per year
+```{r}
+# Hurricane data only looking at Date and name
+hurricane_time<-subset(hurricanes_recent, select = c(NAME,YEAR,MONTH,DAY))
+
+#Group data by year and name and subtracting starting time from end time for each hurricane (duration)
+foo <- hurricane_time %>%
+  group_by(YEAR, NAME) %>%
+  mutate(date = as.Date(paste(YEAR, MONTH, DAY, sep='-')), "%Y-%m-%d") %>%
+  summarise(duration = max(date) - min(date))
+
+#removed outlier
+foo<-foo[!(foo$YEAR==1954 & foo$NAME=="ALICE"|foo$YEAR==2005),]
+
+# Averaging duration per year
+foo1<-group_by(foo, YEAR)%>%
+  summarise(mean(duration))
+colnames(foo1)[2] <- "Average_Duration"
+ggplot(foo1, aes(x=Average_Duration))+
+  geom_histogram(boundary=0,color="white", aes(y=..density..))
+ggplot(foo1,aes(x=YEAR, y=Average_Duration))+
+  geom_line()
+```
+
+### Model 1:
+
+```{r}
+library(rjags)
+
+#specify the model
+duration_model <- "model{
+    #Data
+    for(i in 1:length(x)) {
+        x[i] ~ dnorm(mu,tau)
+    }
+
+    #Priors
+    mu ~ dnorm(6.37,1/1000)
+    tau ~ dgamma(9, 6)
+}"
+
+
+
+duration_jags <- jags.model(textConnection(duration_model), data=list(x=foo$Average_Duration), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+
+
+
+duration_sim <- coda.samples(duration_jags, variable.names=c("mu","tau", "theta"), n.iter=10000)
+
+duration_samples <- data.frame(step=1:10000, duration_sim[[1]])
+head(duration_samples)
+plot(duration_sim)
+summary(duration_sim)
+```
+
+Model 2:
+
+Create training and testing data
+```{r message=FALSE, warning=FALSE}
+data(foo)
+
+## 50% of the sample size
+smp_size <- floor(0.50 * nrow(foo))
+
+## set the seed to make your partition reproductible
+set.seed(123)
+train_ind <- sample(seq_len(nrow(foo)), size = smp_size)
+
+foo_train <- foo[train_ind, ]
+foo_test <- foo[-train_ind, ]
+```
+
+Create model using training data
+```{r}
+library(rjags)
+
+#specify the model
+duration2_model <- "model{
+    #Data
+    for(i in 1:length(x)) {
+        y[i] ~ dnorm(beta0 +beta1*x[i],tau)
+    }
+
+    #Priors
+    beta0 ~ dnorm(6.37,1/1000)
+    beta1~dnorm(0,1/1000)
+    tau ~ dgamma(9, 6)
+}"
+
+
+
+duration2_jags <- jags.model(textConnection(duration2_model), data=list(x=foo_train$Average_Duration), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+
+
+
+duration2_sim <- coda.samples(duration2_jags, variable.names=c("beta0","beta1","tau"), n.iter=10000)
+
+duration2_samples <- data.frame(step=1:10000, duration_sim[[1]])
+head(duration2_samples)
+plot(duration2_sim)
+summary(duration2_sim)
+```
+
+
+Test model on testing data
+```{r}
+library(rjags)
+
+#specify the model
+duration3_model <- "model{
+    #Data
+    for(i in 1:length(x)) {
+        y[i] ~ dnorm(beta0 +beta1*x[i],tau)
+    }
+
+    #Priors
+    beta0 ~ dnorm(6,1/1000)
+    beta1~dnorm(0,1/1000)
+    tau ~ dgamma(9, 6)
+}"
+
+
+
+duration3_jags <- jags.model(textConnection(duration3_model), data=list(x=foo_test$Average_Duration), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+
+
+
+duration3_sim <- coda.samples(duration3_jags, variable.names=c("beta0","beta1","tau"), n.iter=10000)
+
+duration3_samples <- data.frame(step=1:10000, duration_sim[[1]])
+head(duration3_samples)
+plot(duration3_sim)
+summary(duration3_sim)
+```
 
 ### Questions 3.
 
