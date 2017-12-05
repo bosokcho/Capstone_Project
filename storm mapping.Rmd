@@ -1,0 +1,61 @@
+```{r}
+library(ggplot2) # Data visualization
+library(readr) # CSV file I/O, e.g. the read_csv function
+#library(ggalt)
+library(ggthemes)
+
+atl<-read.csv("Historical_Tropical_Storm_Tracks.csv")
+
+##Atlantic- put longitude in proper format and plot
+attach(atl)
+dat<-as.character(atl$LAT)
+new<-substr(dat,1,nchar(dat)-1)
+lat<-as.numeric(new)
+dat<-as.character(atl$LONG)
+new<-substr(dat,1,nchar(dat)-1)
+long<-as.numeric(new)
+long<- -abs(long)
+coord<-as.data.frame(long)
+coord<-cbind(coord, lat)
+out<-subset(coord, long < -100) ##Find the outliers
+total<-cbind(atl, coord)
+outRM<-total[-c(22985,22986),]  ##Remove the outliers
+
+
+world <- map_data("world")
+world <- world[world$region != "Antarctica",]
+gg <- ggplot()
+gg <- gg + geom_map(data=world, map=world,
+                    aes(x=long, y=lat, map_id=region), color="white", fill="#7f7f7f", size=0.05, alpha=1/4)
+gg <- gg + scale_color_tableau()
+gg <- gg + theme_map()
+gg <- gg + theme(strip.background=element_blank())
+gg<-gg+geom_point(data=outRM, aes(long, lat))+ aes(color = "blue", alpha = 0.5)+scale_color_brewer(palette = "PuRd")
+gg
+
+
+##Pacific, the same
+pac<-read.csv("Historical_Tropical_Storm_Tracks.csv")
+
+ff <- ggplot()
+ff <- ff + geom_map(data=world, map=world,
+                    aes(x=long, y=lat, map_id=region), color="white", fill="#7f7f7f", size=0.05, alpha=1/4)
+ff <- ff + scale_color_tableau()
+ff <- ff + theme_map()
+ff <- ff + theme(strip.background=element_blank())
+
+attach(pac)
+dat<-as.character(pac$LAT)
+new<-substr(dat,1,nchar(dat)-1)
+lat<-as.numeric(new)
+dat<-as.character(pac$LONG)
+new<-substr(dat,1,nchar(dat)-1)
+long<-as.numeric(new)
+long<- -abs(long)
+coord<-as.data.frame(long)
+coord<-cbind(coord, lat)
+total<-cbind(pac, coord)
+
+ff<-ff+geom_point(data=total, aes(long, lat))+ aes(color = "red", alpha=0.5)+scale_color_brewer(palette = "Blues")+theme(legend.position = "right")
+ff
+```
