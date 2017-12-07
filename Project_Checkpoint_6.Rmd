@@ -21,20 +21,20 @@ library(MASS)
 library(viridis)
 #library(shiny)
 library(rjags)
+library(MacBayes)
 ```
 
+Loading the data...
 ```{r include=FALSE}
 # Loading the Data
-
-# Hurricane Frequency
 hurricane_data <- read_csv("Historical_Tropical_Storm_Tracks.csv")
-
 hurricane_data<-na.omit(hurricane_data)
 hurricane_data<-subset(hurricane_data, select=-c(BTID, AD_TIME))
 
-# select only hurricanes in 1950 and after
+# Recent Hurricanes--select only hurricanes in 1950 and after
 recent_hurricanes <- hurricane_data[hurricane_data$YEAR >= 1950, ] 
 recent_hurricanes <- recent_hurricanes[!(recent_hurricanes$NAME=="NOTNAMED"),]
+<<<<<<< HEAD
 
 # table of hurricanes per year
 hurricanes_per_year <- recent_hurricanes %>%
@@ -45,6 +45,8 @@ hurricanes_per_basin <- recent_hurricanes %>%
   group_by(BASIN) %>%
   summarise(TOTAL_H = n_distinct(NAME, DAY))
 
+=======
+>>>>>>> a22f559e9cd25af3504a9da11315b346e4d5b40e
 #Format Coordinates
 #dat<-as.character(recent_hurricanes$LAT)
 #new<-substr(dat,1,nchar(dat))
@@ -59,7 +61,18 @@ hurricanes_per_basin <- recent_hurricanes %>%
 #name<-as.character(recent_hurricanes$NAME)
 #coord<-cbind(year, name, coord, lat)
 
+<<<<<<< HEAD
 ```
+=======
+# Hurricane Frequency
+# table of hurricanes per year
+hurricanes_per_year <- recent_hurricanes %>%
+  group_by(YEAR) %>%
+  summarise(TOTAL_H = n_distinct(NAME))
+hurricanes_per_basin <- recent_hurricanes %>%
+  group_by(BASIN) %>%
+  summarise(TOTAL_H = n_distinct(NAME, DAY))
+>>>>>>> a22f559e9cd25af3504a9da11315b346e4d5b40e
 
 Sub-data
 ```{r}
@@ -70,30 +83,23 @@ temp_data<-na.omit(temp_data)
 temp_data<-temp_data[,-(5:15),drop=FALSE]
 temp_recent <- temp_data %>%
   filter(Year > 1949)
-
 # select only northern hemisphere temp data
 tempN <- subset(temp_recent, select = c(Year, NHem))
-
 # rename the columns
 colnames(tempN) <- c("YEAR", "temp")
-
 # join temperature to hurricanes per year table
 hurricanes_per_year2 <- merge(x = hurricanes_per_year, y = tempN, by = "YEAR", all.x = TRUE)
 
 # CO2 Data
 CO2 <- read_csv("CO2.csv")
-
 # Alter CO2 to remove unnecessary variable trend
 CO2 <- subset(CO2, select = -trend)
-
 # get average by year
 CO2_yr <- CO2 %>%
   group_by(year) %>%
   summarise(avg_CO2 = mean(average))
-
 # rename columns
 colnames(CO2_yr) <- c("YEAR", "avg_CO2")
-
 # join with hurricane per year table
 hurricanes_per_year3 <- merge(x = hurricanes_per_year2, y = CO2_yr, by = "YEAR", all.x = TRUE)
 # FIX THIS (bc only 1980 onward available)
@@ -107,9 +113,7 @@ NAO_index1 <- read_csv("NAO_index_monthly.csv",
         Mar = col_number(), May = col_number(), 
         Nov = col_number(), Oct = col_number(), 
         Sep = col_number()))
-
 NAO_index2 <- NAO_index1[, -c(14)]
-
 NAO_index3 <- NAO_index2 %>%
   rename(year = X1) %>%
   mutate(Jul = replace(Jul, Jul < -50| Jul > 50, "")) %>%
@@ -118,28 +122,21 @@ NAO_index3 <- NAO_index2 %>%
   mutate(Oct = replace(Oct, Oct < -50| Oct > 50, "")) %>%
   mutate(Nov = replace(Nov, Nov < -50| Nov > 50, "")) %>%
   mutate(Dec = replace(Dec, Dec < -50| Dec > 50, ""))
-  
 NAO_index <- NAO_index3[-nrow(NAO_index3),] 
-
 # remove 2017 (data for year is incomplete)
 NAO_index <- head(NAO_index, -1) 
-
 # reshape table
 NAO_index <- melt(NAO_index, id=c("year"))
 colnames(NAO_index)[2] <- "month"
 colnames(NAO_index)[3] <- "index"
-
 NAO_index$year <- as.factor(NAO_index$year)
 NAO_index$index <- as.numeric(NAO_index$index)
-
 # group by year
 NAO_yr <- NAO_index %>%
   group_by(year) %>%
   summarise(avg_NAO = mean(index))
-
 # rename columns
 colnames(NAO_yr) <- c("YEAR", "avg_NAO")
-
 # join with hurricane data
 hurricanes_per_year4 <- merge(x = hurricanes_per_year3, y = NAO_yr, by = "YEAR", all.x = TRUE)
 
@@ -147,35 +144,60 @@ hurricanes_per_year4 <- merge(x = hurricanes_per_year3, y = NAO_yr, by = "YEAR",
 hurricanes_per_year_clean<-na.omit(hurricanes_per_year4)
 ```
 
+
+
 # Progress Made:
 
+This week, we worked to fix the model that was not functioning last week (modeling windspeed).  We created a new model for annual hurricane rate using poisson regression.  We summarized this new model (and also last week's normal-normal model of hurricane rate) with running mean plots and found the credible intervals of the parameters.
 
 # Group Member Roles:
 
-* Madeline--
-* Daisy--
-* Aidan--
+* Madeline--summarized normal-normal model results and worked on poisson regression for hurricane rate.
+* Daisy--worked on modeling duration of hurricanes, tried to create new dataset of hurricane landfall
+* Aidan--corrected, expanded, and summarized the windspeed model
 
 
 # Modeling:
 
 \
 
+Things to think about:
+
+* limit data to hurricanes in the Atlantic
+
+* include year as a predictor in models
 
 
-### Question 1.
+## Question 1.
 
 Can we model the change in frequency of hurricanes based on trends in hurricane windspeed and category, temperature, CO2, and NAO index?
 
 
-Plot distribution of hurricanes per year
+\
+
+###Some plots...
+
+\
+
+Plot histogram of annual hurricane frequency
 ```{r}
-ggplot(hurricanes_per_year, aes(x = YEAR, y = TOTAL_H)) + geom_point(color = "orange")
+# hurricanes
+ggplot(hurricanes_per_year_clean, aes(x = TOTAL_H)) + geom_histogram(color = 'white', fill = 'goldenrod1', aes(y = ..density..))
+
+# temp
+ggplot(hurricanes_per_year_clean, aes(x = temp)) + geom_histogram(color = 'white', fill = 'coral', aes(y = ..density..))
+
+#co2
+ggplot(hurricanes_per_year_clean, aes(x = avg_CO2)) + geom_histogram(color = 'white', fill = 'darkorchid2', aes(y = ..density..))
+
+# NAO
+ggplot(hurricanes_per_year_clean, aes(x = avg_NAO)) + geom_histogram(color = 'white', fill = 'darkseagreen', aes(y = ..density..))
 ```
+
 
 Plot hurricanes per year by temperature
 ```{r}
-ggplot(hurricanes_per_year_clean, aes(x = temp, y = TOTAL_H)) + geom_point(color = "skyblue")
+ggplot(hurricanes_per_year_clean, aes(x = temp, y = TOTAL_H)) + geom_point(color = "firebrick1")
 ```
 
 Hurricanes per year by CO2 levels
@@ -183,13 +205,17 @@ Hurricanes per year by CO2 levels
 ggplot(hurricanes_per_year_clean, aes(x = avg_CO2, y = TOTAL_H)) + geom_point(color = "darkslateblue")
 ```
 
-Hurricanes per year by CO2 levels
+Hurricanes per year by NAO levels
 ```{r}
-ggplot(hurricanes_per_year_clean, aes(x = avg_NAO, y = TOTAL_H)) + geom_point(color = "darkseagreen")
+ggplot(hurricanes_per_year_clean, aes(x = avg_NAO, y = TOTAL_H)) + geom_point(color = "aquamarine4")
 ```
 
 
-### Model 1: 
+### Model 1: Normal-normal
+
+Question 1:Can we model the change in frequency of hurricanes based on trends in hurricane windspeed and category, temperature, CO2, and NAO index?
+
+\
 
 Let:
 
@@ -216,7 +242,9 @@ $$\beta_{3} \sim N(0, 1000^2)$$
 $$(\theta^2)^{-1} \sim Gamma(0.001, 0.001)$$
 
 
+Build the model--normal-normal
 ```{r}
+
 # specify the model
 hurricane_freq_model1 <- "model{
   # Data
@@ -235,120 +263,174 @@ hurricane_freq_model1 <- "model{
 
 # set up an algorithm to simulate the posterior by combining the model (hurricane_freq_model1) and data (y)
 # set the random number seed
-hurricane_freq_jags1 <- jags.model(textConnection(hurricane_freq_model1), data=list(y=hurricanes_per_year_clean$TOTAL_H, x1=hurricanes_per_year_clean$temp, x2=hurricanes_per_year_clean$avg_CO2, x3=hurricanes_per_year_clean$avg_NAO), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+hurricane_freq_jags1 <- jags.model(textConnection(hurricane_freq_model1), data=list(y=hurricanes_per_year_clean$TOTAL_H, x1=hurricanes_per_year_clean$temp, x2=hurricanes_per_year_clean$avg_CO2, x3=hurricanes_per_year_clean$avg_NAO), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=2000))
 
 # simulate a sample from the posterior
 # note that we specify both mu and tau variables
-hurricane_freq_sim1 <- coda.samples(hurricane_freq_jags1, variable.names = c("beta0", "beta1", "beta2", "beta3", "tau"), n.iter=100)
+hurricane_freq_sim1 <- coda.samples(hurricane_freq_jags1, variable.names = c("beta0", "beta1", "beta2", "beta3", "tau"), n.iter=50000)
 
 # store the samples in a data frame:
-hurricane_freq_sample1 <- data.frame(step = 1:100, hurricane_freq_sim1[[1]])
+hurricane_freq_sample1 <- data.frame(step = 1:50000, hurricane_freq_sim1[[1]])
 head(hurricane_freq_sample1)
 
-summary(hurricane_freq_sample1)
+#summary(hurricane_freq_sim1)
+#plot(hurricane_freq_sim1)
+#summary(hurricane_freq_sample1)
 #plot(hurricane_freq_sample1)
+
+```
+
+Do parameter estimations converge?
+```{r}
+running_mean_plot(x = hurricane_freq_sample1$beta1, se = TRUE)
+running_mean_plot(x = hurricane_freq_sample1$beta2, se = TRUE)
+running_mean_plot(x = hurricane_freq_sample1$beta3, se = TRUE)
+```
+
+Are the predictor variables useful?  Look at model parameters
+```{r}
+sum(hurricane_freq_sample1$beta0)/10000
+sum(hurricane_freq_sample1$beta1)/10000
+sum(hurricane_freq_sample1$beta2)/10000
+sum(hurricane_freq_sample1$beta3)/10000
+
+quantile(hurricane_freq_sample1$beta0, c(0.05, 0.975)) 
+quantile(hurricane_freq_sample1$beta1, c(0.05, 0.975))
+quantile(hurricane_freq_sample1$beta2, c(0.05, 0.975))
+quantile(hurricane_freq_sample1$beta3, c(0.05, 0.975))
+
+mean(hurricane_freq_sample1$beta0)
+mean(hurricane_freq_sample1$beta1)
+mean(hurricane_freq_sample1$beta2)
+mean(hurricane_freq_sample1$beta3)
+```
+
+Prediction
+```{r}
+preds = rep(0, 29)
+for (i in 1:29){
+  preds[i] <- mean(hurricane_freq_sample1$beta0) + mean(hurricane_freq_sample1$beta1)*hurricanes_per_year_clean$temp[i] + mean(hurricane_freq_sample1$beta2)*hurricanes_per_year_clean$avg_CO2[i] + mean(hurricane_freq_sample1$beta3)*hurricanes_per_year_clean$avg_NAO[i] 
+}
+pred2plot <- data.frame(cbind(hurricanes_per_year_clean$YEAR, preds, hurricanes_per_year_clean$TOTAL_H))
+colnames(pred2plot) <- c("YEAR", "pred", "actual")
+
+ggplot() +
+  geom_point(data = pred2plot, aes(x = YEAR, y = pred), color = "blue") +
+  geom_point(data = pred2plot, aes(x = YEAR, y = actual), color = "red")
 ```
 
 
 
-### Model 2:
 
-Let:
+### Model 2: Poisson regression
 
-$Y_{t} =$ total hurricanes in year $t$
+Question 1: Can we model the change in frequency of hurricanes based on trends in hurricane windspeed and category, temperature, CO2, and NAO index?
 
-$X_{1t} =$ average yearly temperature in year $t$
+\
 
-$X_{2t} =$ yearly CO2 concentration in year $t$
-
-$X_{3t} =$ NAO index in year $t$
-
-We propose the following model:
-
-$$Y_t | \beta_{0}, \beta_{1}, \beta_{2}, \beta_{3} \sim N(\beta_0 + \beta_{1}X_{1t} + \beta_{2}X_{2t} + \beta_{3}X_{3t}, \theta^2)$$
-
-$$\beta_0 \sim N(\mu_{0}, 1000^2)$$
-
-$$\beta_{1t} \sim N(\mu_{1}, 1000^2)$$
-
-$$\beta_{2t} \sim N(\mu_{2}, 1000^2)$$
-
-$$\beta_{3t} \sim N(\mu_{3}, 1000^2)$$
-
-$$(\theta^2)^{-1} \sim Gamma(0.001, 0.001)$$
-
-$$\mu_{0} \sim N(0, 1000^2)$$
-
-$$\mu_{1} \sim N(0, 1000^2)$$
-
-$$\mu_{2} \sim N(0, 1000^2)$$
-
-$$\mu_{3} \sim N(0, 1000^2)$$
-
+Format the data
 ```{r}
-# specify the model
-hurricane_freq_model2 <- "model{
-  # Data
-  for (t in 1:length(y)) {
-    y[t] ~ dnorm(beta0 + beta1*x1[t] + beta2*x2[t] + beta3*x3[t], tau) #PRECISION
-    }
-
-  #Priors
-  beta0 ~ dnorm(mu0, 1/(1000)^2) #PRECISION
-  beta1 ~ dnorm(mu1, 1/(1000)^2) #PRECISION
-  beta2 ~ dnorm(mu2, 1/(1000)^2) #PRECISION
-  beta3 ~ dnorm(mu3, 1/(1000)^2) #PRECISION
-  tau ~ dgamma(0.001, 0.001)
-  mu0 ~ dnorm(0, 1/(1000)^2)
-  mu1 ~ dnorm(0, 1/(1000)^2)
-  mu2 ~ dnorm(0, 1/(1000)^2)
-  mu3 ~ dnorm(0, 1/(1000)^2)
-}"
+# table of locations where wind speed in max.  in cases where hurricane has multiple obervations at max wind speed, the center of these list locations is given as location of max wind speed
+location_max <- hurricane_data %>%
+  filter(YEAR > 1949) %>%
+  group_by(YEAR, NAME) %>%
+  filter(WIND_KTS == max(WIND_KTS)) %>%
+  summarise(CENTER_LAT = mean(LAT), CENTER_LONG = mean(LONG), WIND_KTS = mean(WIND_KTS)) 
+```
 
 
-# set up an algorithm to simulate the posterior by combining the model (hurricane_freq_model2) and data (y)
+Build the model--Poisson regression (frequency of hurricanes)
+```{r}
+library(rjags)
+
+head(location_max)
+head(hurricanes_per_year_clean)
+
+hur_mod <- " model {
+  for (i in 1:length(TOTAL_H)) {
+      TOTAL_H[i] ~ dpois(lam[i])
+      log(lam[i]) = beta0 + beta1*X1[i] + beta2*X2[i] + beta3*X3[i]
+  }
+
+  beta0 ~ dnorm(0.0, 1.0/1e6)
+  beta1 ~ dnorm(0.0, 1.0/1e4)
+  beta2 ~ dnorm(0.0, 1.0/1e4)
+  beta3 ~ dnorm(0.0, 1.0/1e4)
+} "
+
+# set up an algorithm to simulate the posterior by combining the model and data (x)
 # set the random number seed
-hurricane_freq_jags2 <- jags.model(textConnection(hurricane_freq_model2), data=list(y=hurricanes_per_year_clean$TOTAL_H, x1=hurricanes_per_year_clean$temp, x2=hurricanes_per_year_clean$avg_CO2, x3=hurricanes_per_year_clean$avg_NAO), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+
+data_jags = as.list(hurricanes_per_year_clean[,2:5])
+str(data_jags)
+
+freq_jags <- jags.model(textConnection(hur_mod),data=list(TOTAL_H = hurricanes_per_year_clean$TOTAL_H, X1 = hurricanes_per_year_clean$temp, X2 = hurricanes_per_year_clean$avg_CO2,X3 = hurricanes_per_year_clean$avg_NAO), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=2000))
 
 # simulate a sample from the posterior
 # note that we specify both mu and tau variables
-hurricane_freq_sim2 <- coda.samples(hurricane_freq_jags2, variable.names = c("beta0", "beta1", "beta2", "beta3", "tau"), n.iter=100)
+freq_sim <- coda.samples(freq_jags, variable.names = c("beta0", "beta1", "beta2", "beta3"), n.iter=50000)
 
 # store the samples in a data frame:
-hurricane_freq_sample2 <- data.frame(step = 1:100, hurricane_freq_sim2[[1]])
-head(hurricane_freq_sample2)
-
-summary(hurricane_freq_sample2)
-#plot(hurricane_freq_sample1)
+freq_sample <- data.frame(step = 1:50000, freq_sim[[1]])
+head(freq_sample)
 ```
 
+Looking at convergence
+```{r}
+library(MacBayes)
+running_mean_plot(x=freq_sample$beta0, se=TRUE)
+running_mean_plot(x=freq_sample$beta1, se=TRUE)
+running_mean_plot(x=freq_sample$beta2, se=TRUE)
+```
+
+<<<<<<< HEAD
 ### Question 2.
+=======
+Testing
+```{r}
+exp(quantile(freq_sample$beta1, c(0.05, 0.975)))
+exp(quantile(freq_sample$beta2, c(0.05, 0.975)))
+exp(quantile(freq_sample$beta3, c(0.05, 0.975)))
+
+mean(freq_sample$beta0)
+mean(freq_sample$beta1)
+mean(freq_sample$beta2)
+mean(freq_sample$beta3)
+```
+>>>>>>> a22f559e9cd25af3504a9da11315b346e4d5b40e
+
+```{r}
+preds1 = rep(0, 29)
+for (i in 1:29){
+  preds1[i] <- exp(mean(freq_sample$beta0) + mean(freq_sample$beta1)*hurricanes_per_year_clean$temp[i] + mean(freq_sample$beta2)*hurricanes_per_year_clean$avg_CO2[i] + mean(freq_sample$beta3)*hurricanes_per_year_clean$avg_NAO[i] )
+}
+
+predPlot <- data.frame(cbind(hurricanes_per_year_clean$YEAR, preds1, hurricanes_per_year_clean$TOTAL_H))
+colnames(predPlot) <- c("YEAR", "pred", "actual")
+
+ggplot() +
+  geom_point(data = predPlot, aes(x = YEAR, y = pred), color = "blue") +
+  geom_point(data = predPlot, aes(x = YEAR, y = actual), color = "red")
+
+```
+
+
+
+## Question 2.
 
 Can we model  the trend of average durations of hurricanes over the years?
 
-Model 1:
-
-Prior: 
-$$X \sim Norm(\mu,\tau)$$
-
-Hyperpriors:
-$$\mu \sim N(0, 1000)$$
-
-$$\tau \sim \Gamma(2, 0.05)$$
-
-Model 2:
-
-Prior: $$X \sim N(mu, tau)$$
-
-Given length(x)= number of years
-$$\mu\sim N(6.37, 10^2)$$
-
-$$\tau \sim \Gamma(9, 6)$$
+\
 
 Create new dataset on average durations per year
+<<<<<<< HEAD
 ```{r echo=FALSE}
+=======
+
+```{r}
+>>>>>>> a22f559e9cd25af3504a9da11315b346e4d5b40e
 # Hurricane data only looking at Date and name
-hurricane_time<-subset(hurricanes_recent, select = c(NAME,YEAR,MONTH,DAY))
+hurricane_time<-subset(recent_hurricanes, select = c(NAME,YEAR,MONTH,DAY))
 
 #Group data by year and name and subtracting starting time from end time for each hurricane (duration)
 foo <- hurricane_time %>%
@@ -369,11 +451,38 @@ ggplot(foo1,aes(x=YEAR, y=Average_Duration))+
   geom_line()
 ```
 
+
 ### Model 1:
 
-```{r}
-library(rjags)
+Question 2: Can we model  the trend of average durations of hurricanes over the years?
 
+\
+
+Prior: 
+$$X \sim Norm(\mu,\tau)$$
+
+Hyperpriors:
+$$\mu \sim N(0, 1000)$$
+
+$$\tau \sim \Gamma(2, 0.05)$$
+
+Load the data
+```{r}
+#Group data by year and name and subtracting starting time from end time for each hurricane (duration)
+foo <- hurricane_time %>%
+  group_by(YEAR, NAME) %>%
+  mutate(date = as.Date(paste(YEAR, MONTH, DAY, sep='-')), "%Y-%m-%d") %>%
+  summarise(duration = max(date) - min(date))
+#removed outlier
+foo<-foo[!(foo$YEAR==1954 & foo$NAME=="ALICE"),]
+# Averaging duration per year
+foo<-group_by(foo, YEAR)%>%
+  summarise(mean(duration))
+```
+
+
+Build the model
+```{r}
 #specify the model
 duration_model <- "model{
     #Data
@@ -391,6 +500,7 @@ duration_model <- "model{
     tau ~ dgamma(0.001, 0.001)
 }"
 
+<<<<<<< HEAD
 
 
 duration_jags <- jags.model(textConnection(duration_model), data=list(y=foo_train$Average_Duration, x1=hurricanes_per_year_clean$temp, x2=hurricanes_per_year_clean$avg_CO2, x3=hurricanes_per_year_clean$avg_NAO), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
@@ -398,6 +508,11 @@ duration_jags <- jags.model(textConnection(duration_model), data=list(y=foo_trai
 
 
 duration_sim <- coda.samples(duration_jags, variable.names=c("b","beta0","beta1","beta2","beta3", "tau"), n.iter=10000)
+=======
+duration_jags <- jags.model(textConnection(duration_model), data=list(x=foo$Average_Duration), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+
+duration_sim <- coda.samples(duration_jags, variable.names=c("mu","tau", "theta"), n.iter=10000)
+>>>>>>> a22f559e9cd25af3504a9da11315b346e4d5b40e
 
 duration_samples <- data.frame(step=1:10000, duration_sim[[1]])
 head(duration_samples)
@@ -405,7 +520,20 @@ plot(duration_sim)
 summary(duration_sim)
 ```
 
-Model 2:
+
+
+### Model 2:
+
+Question 2: Can we model  the trend of average durations of hurricanes over the years?
+
+\
+
+Prior: $$X \sim N(mu, tau)$$
+
+Given length(x)= number of years
+$$\mu\sim N(6.37, 10^2)$$
+
+$$\tau \sim \Gamma(9, 6)$$
 
 Create training and testing data
 ```{r message=FALSE, warning=FALSE}
@@ -424,6 +552,7 @@ foo_test <- foo[-train_ind, ]
 
 Create model using training data
 ```{r}
+
 library(rjags)
 
 #specify the model
@@ -451,11 +580,13 @@ duration2_samples <- data.frame(step=1:10000, duration_sim[[1]])
 head(duration2_samples)
 plot(duration2_sim)
 summary(duration2_sim)
+
 ```
 
 
 Test model on testing data
 ```{r}
+
 library(rjags)
 
 #specify the model
@@ -483,10 +614,153 @@ duration3_samples <- data.frame(step=1:10000, duration_sim[[1]])
 head(duration3_samples)
 plot(duration3_sim)
 summary(duration3_sim)
+
 ```
 
-### Questions 3.
+
+## Question 3:
+
+Can we predict windspeed of hurricanes by NAO index, CO2, and temperature?
+
+### Data
+```{r}
+
+# Create new data set with windspeed and year
+windspeed_yr <- hurricane_data %>%
+  group_by(YEAR) %>%
+  summarise(avg_windspeed = mean(WIND_KTS))
+
+# Merge this with the other data set
+HURRICANES <- merge(x = hurricanes_per_year_clean, y = windspeed_yr, by = "YEAR", all.x = TRUE)
+
+```
+
+### Plots
+```{r}
+
+ggplot(HURRICANES, aes(x=avg_windspeed))+
+  geom_histogram(boundary=0,color="white", aes(y=..density..))
+ggplot(HURRICANES,aes(x=YEAR, y=avg_windspeed))+
+  geom_line()
+
+lo <- loess(HURRICANES$avg_windspeed~HURRICANES$YEAR)
+plot(HURRICANES$YEAR,HURRICANES$avg_windspeed)
+lines(predict(lo), col='red', lwd=2)
+
+```
+
+### Means
+```{r}
+
+mean(HURRICANES$avg_CO2)
+mean(HURRICANES$temp)
+mean(HURRICANES$avg_NAO)
+
+var(HURRICANES$avg_CO2)
+var(HURRICANES$temp)
+var(HURRICANES$avg_NAO)
+
+```
+
+### Model
 
 
+$Y_{i} =$ average windspeed of hurricane in year $i$
+
+$X_{1} =$ average C02 in year $i$
+
+$X_{2} =$ average temperature in year $i$
+
+$X_{3} =$ average NAO in year $i$
+
+We propose the following model:
+
+$$Y_i | \beta_{0}, \beta_{1}, \beta_{2}, \beta_{3} \sim N(\beta_0 + \beta_{1}X_{1t} + \beta_{2}X_{2t} + \beta_{3}X_{3t}, \theta^2)$$
+
+$$\beta_0 \sim N(0, 1000^2)$$
+
+$$\beta_{1} \sim N(0, 1000^2)$$
+
+$$\beta_{2} \sim N(0, 1000^2)$$
+
+$$\beta_{3} \sim N(0, 1000^2)$$
+
+$$(\theta^2)^{-1} \sim Gamma(0.001, 0.001)$$
+
+```{r}
+
+#*specify the model
+library(rjags)
+
+windSpeed_model <- "model{
+    #Data
+    for(i in 1:length(y)) {
+        y[i] ~ dnorm(beta0 + beta1*x1[i] + beta2*x2[i] + beta3*x3[i], tau)
+
+    }
+    #Priors
+    beta0 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta1 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta2 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta3 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    tau ~ dgamma(0.001, 0.001)
+
+}"
+
+#*set up an algorithm to simulate the posterior by
+#*combining the model (games_model) and data (x)
+#*set the random number seed
+windSpeed_jags <- jags.model(textConnection(windSpeed_model),data=list(y=HURRICANES$avg_windspeed,x1=HURRICANES$avg_CO2, x2=HURRICANES$temp, x3=HURRICANES$avg_NAO),
+                    inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+
+#*simulate a sample from the posterior
+#*note that we specify both mu and tau variables
+windSpeed_sim <- coda.samples(windSpeed_jags, variable.names=c("beta0","beta1","beta2","beta3"), n.iter=150000)
+
+
+#*store the samples in a data frame:
+windSpeed_sample <- data.frame(step=1:150000, windSpeed_sim[[1]])
+head(windSpeed_sample)
+
+```
+
+```{r}
+
+plot(windSpeed_sim)
+summary(windSpeed_sim)
+
+```
+
+```{r}
+
+sum(windSpeed_sample$beta0)/10000
+sum(windSpeed_sample$beta1)/10000
+sum(windSpeed_sample$beta2)/10000
+sum(windSpeed_sample$beta3)/10000
+
+quantile(windSpeed_sample$beta0, c(0.05, 0.975)) 
+quantile(windSpeed_sample$beta1, c(0.05, 0.975))
+quantile(windSpeed_sample$beta2, c(0.05, 0.975))
+quantile(windSpeed_sample$beta3, c(0.05, 0.975))
+
+```
+
+The posterior mean $E(β0|y) = 103.8736$
+The posterior mean $E(β1|y) = -0.1505875$
+The posterior mean $E(β2|y) = 3.911151$
+The posterior mean $E(β3|y) = 0.1622669$
+
+The posterior 95% credible interval for $β0 = (45.61848, 157.49618)$
+The posterior 95% credible interval for $β1 = (-0.2970584, 0.0372634)$
+The posterior 95% credible interval for $β2 = (-5.460935, 14.519758)$
+The posterior 95% credible interval for $β3 = (-2.451443, 3.319495)$
+
+```{r}
+
+running_mean_plot(x = windSpeed_sample$beta1, se = TRUE)
+running_mean_plot(x = windSpeed_sample$beta2, se = TRUE)
+running_mean_plot(x = windSpeed_sample$beta3, se = TRUE)
+
+```
 
 
