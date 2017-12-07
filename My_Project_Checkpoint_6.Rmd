@@ -1,0 +1,395 @@
+# Project Checkpoint 6
+
+**NAMES:**  Madeline Abbott, Aidan Teppema, Daisy Cho
+
+\
+\
+\
+\
+
+
+```{r include=FALSE}
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(zoo)
+library(lubridate)
+library(ggmap)
+library(reshape2)
+library(MASS)
+library(viridis)
+#library(shiny)
+library(rjags)
+```
+
+```{r include=FALSE}
+# Loading the Data
+
+# Hurricane Frequency
+hurricane_data <- read_csv("Historical_Tropical_Storm_Tracks.csv")
+
+hurricane_data<-na.omit(hurricane_data)
+hurricane_data<-subset(hurricane_data, select=-c(BTID, AD_TIME))
+
+# select only hurricanes in 1950 and after
+recent_hurricanes <- hurricane_data[hurricane_data$YEAR >= 1950, ] 
+
+# table of hurricanes per year
+hurricanes_per_year <- recent_hurricanes %>%
+  group_by(YEAR) %>%
+  summarise(TOTAL_H = n_distinct(NAME))
+
+
+# Temperature Data
+temp_data <- read.csv("ZonAnn.csv")
+temp_data[!complete.cases(temp_data),]
+temp_data<-na.omit(temp_data)
+temp_data<-temp_data[,-(5:15),drop=FALSE]
+temp_recent <- temp_data %>%
+  filter(Year > 1949)
+
+# select only northern hemisphere temp data
+tempN <- subset(temp_recent, select = c(Year, NHem))
+
+# rename the columns
+colnames(tempN) <- c("YEAR", "temp")
+
+# join temperature to hurricanes per year table
+hurricanes_per_year2 <- merge(x = hurricanes_per_year, y = tempN, by = "YEAR", all.x = TRUE)
+
+# CO2 Data
+CO2 <- read_csv("CO2.csv")
+
+# Alter CO2 to remove unnecessary variable trend
+CO2 <- subset(CO2, select = -trend)
+
+# get average by year
+CO2_yr <- CO2 %>%
+  group_by(year) %>%
+  summarise(avg_CO2 = mean(average))
+
+# rename columns
+colnames(CO2_yr) <- c("YEAR", "avg_CO2")
+
+# join with hurricane per year table
+hurricanes_per_year3 <- merge(x = hurricanes_per_year2, y = CO2_yr, by = "YEAR", all.x = TRUE)
+# FIX THIS (bc only 1980 onward available)
+
+# NAO Index Data
+NAO_index1 <- read_csv("NAO_index_monthly.csv", 
+    col_types = cols(Apr = col_number(), 
+        Aug = col_number(), Dec = col_number(), 
+        Feb = col_number(), Jan = col_number(), 
+        Jul = col_number(), Jun = col_number(), 
+        Mar = col_number(), May = col_number(), 
+        Nov = col_number(), Oct = col_number(), 
+        Sep = col_number()))
+
+NAO_index2 <- NAO_index1[, -c(14)]
+
+NAO_index3 <- NAO_index2 %>%
+  rename(year = X1) %>%
+  mutate(Jul = replace(Jul, Jul < -50| Jul > 50, "")) %>%
+  mutate(Aug = replace(Aug, Aug < -50| Aug > 50, "")) %>%
+  mutate(Sep = replace(Sep, Sep < -50| Sep > 50, "")) %>%
+  mutate(Oct = replace(Oct, Oct < -50| Oct > 50, "")) %>%
+  mutate(Nov = replace(Nov, Nov < -50| Nov > 50, "")) %>%
+  mutate(Dec = replace(Dec, Dec < -50| Dec > 50, ""))
+  
+NAO_index <- NAO_index3[-nrow(NAO_index3),] 
+
+# remove 2017 (data for year is incomplete)
+NAO_index <- head(NAO_index, -1) 
+
+# reshape table
+NAO_index <- melt(NAO_index, id=c("year"))
+colnames(NAO_index)[2] <- "month"
+colnames(NAO_index)[3] <- "index"
+
+NAO_index$year <- as.factor(NAO_index$year)
+NAO_index$index <- as.numeric(NAO_index$index)
+
+# group by year
+NAO_yr <- NAO_index %>%
+  group_by(year) %>%
+  summarise(avg_NAO = mean(index))
+
+# rename columns
+colnames(NAO_yr) <- c("YEAR", "avg_NAO")
+
+# join with hurricane data
+hurricanes_per_year4 <- merge(x = hurricanes_per_year3, y = NAO_yr, by = "YEAR", all.x = TRUE)
+
+# Remove all rows with missing data
+hurricanes_per_year_clean<-na.omit(hurricanes_per_year4)
+```
+
+# Progress Made:
+
+
+# Group Member Roles:
+
+* Madeline--
+* Daisy--
+* Aidan--
+
+
+# Modeling:
+
+\
+
+
+## Question 1.
+
+
+## Question 2.
+
+
+To do:
+
+* simple normal normal frequency model
+
+* poisson regression
+
+* spBayes location model
+
+
+Things to consider:
+
+* histogram of frequency
+
+* also try frequency of hurricanes by certain location
+
+* look at credible intervals of posterior to see if variables are useful
+
+* length of simulation (n = 1000 or longer?)
+
+* try using poisson instead of normal prior
+
+* no linear structure--hurricances by year
+
+* bivariate normal dist--gaussian dist for lat long coords
+
+* modeling for seasonal point processess marked hurricane occurances
+
+* intensity over time
+
+* geoR--bayesian kriging
+
+* poisson point process--modeling number of hurricanes per year by lat and long, over time
+predict rate with lat, long, and interaction
+
+* THIS: look at non linearlity in hurricanes per year; lm in spBayes
+
+
+
+
+
+Can we model the change in frequency of hurricanes based on trends in hurricane windspeed and category, temperature, CO2, and NAO index?
+
+
+\
+
+
+Plot histogram of annual hurricane frequency
+```{r}
+# hurricanes
+ggplot(hurricanes_per_year_clean, aes(x = TOTAL_H)) + geom_histogram(color = 'white', fill = 'goldenrod1', aes(y = ..density..))
+
+# temp
+ggplot(hurricanes_per_year_clean, aes(x = temp)) + geom_histogram(color = 'white', fill = 'goldenrod1', aes(y = ..density..))
+
+#co2
+ggplot(hurricanes_per_year_clean, aes(x = avg_CO2)) + geom_histogram(color = 'white', fill = 'goldenrod1', aes(y = ..density..))
+
+# NAO
+ggplot(hurricanes_per_year_clean, aes(x = avg_NAO)) + geom_histogram(color = 'white', fill = 'goldenrod1', aes(y = ..density..))
+```
+
+Plot distribution of variable per year
+```{r}
+#hurricanes
+ggplot(hurricanes_per_year_clean, aes(x = YEAR, y = TOTAL_H)) + geom_point(color = "orange")
+
+# temp
+ggplot(hurricanes_per_year_clean, aes(x = YEAR, y = temp)) + geom_point(color = "orange")
+
+# co2
+ggplot(hurricanes_per_year_clean, aes(x = YEAR, y = avg_CO2)) + geom_point(color = "orange")
+
+# NAO
+ggplot(hurricanes_per_year_clean, aes(x = YEAR, y = avg_NAO)) + geom_point(color = "orange")
+```
+
+Plot hurricanes per year by temperature
+```{r}
+ggplot(hurricanes_per_year_clean, aes(x = temp, y = TOTAL_H)) + geom_point(color = "skyblue")
+```
+
+Hurricanes per year by CO2 levels
+```{r}
+ggplot(hurricanes_per_year_clean, aes(x = avg_CO2, y = TOTAL_H)) + geom_point(color = "darkslateblue")
+```
+
+Hurricanes per year by CO2 levels
+```{r}
+ggplot(hurricanes_per_year_clean, aes(x = avg_NAO, y = TOTAL_H)) + geom_point(color = "darkseagreen")
+```
+
+
+### Model 1: 
+
+Let:
+
+$Y_{t} =$ total hurricanes in year $t$
+
+$X_{1t} =$ average yearly temperature in year $t$
+
+$X_{2t} =$ yearly CO2 concentration in year $t$
+
+$X_{3t} =$ NAO index in year $t$
+
+We propose the following model:
+
+$$Y_t | \beta_{0}, \beta_{1}, \beta_{2}, \beta_{3} \sim N(\beta_0 + \beta_{1}X_{1t} + \beta_{2}X_{2t} + \beta_{3}X_{3t}, \theta^2)$$
+
+$$\beta_0 \sim N(0, 1000^2)$$
+
+$$\beta_{1} \sim N(0, 1000^2)$$
+
+$$\beta_{2} \sim N(0, 1000^2)$$
+
+$$\beta_{3} \sim N(0, 1000^2)$$
+
+$$(\theta^2)^{-1} \sim Gamma(0.001, 0.001)$$
+
+
+### normal normal
+
+```{r}
+# specify the model
+hurricane_freq_model1 <- "model{
+  # Data
+  for (t in 1:length(y)) {
+    y[t] ~ dnorm(beta0 + beta1*x1[t] + beta2*x2[t] + beta3*x3[t], tau) #PRECISION
+    }
+
+  #Priors
+  beta0 ~ dnorm(0, 1/(1000)^2) #PRECISION
+  beta1 ~ dnorm(0, 1/(1000)^2) #PRECISION
+  beta2 ~ dnorm(0, 1/(1000)^2) #PRECISION
+  beta3 ~ dnorm(0, 1/(1000)^2) #PRECISION
+  tau ~ dgamma(0.001, 0.001)
+}"
+
+
+# set up an algorithm to simulate the posterior by combining the model (hurricane_freq_model1) and data (y)
+# set the random number seed
+hurricane_freq_jags1 <- jags.model(textConnection(hurricane_freq_model1), data=list(y=hurricanes_per_year_clean$TOTAL_H, x1=hurricanes_per_year_clean$temp, x2=hurricanes_per_year_clean$avg_CO2, x3=hurricanes_per_year_clean$avg_NAO), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+
+# simulate a sample from the posterior
+# note that we specify both mu and tau variables
+hurricane_freq_sim1 <- coda.samples(hurricane_freq_jags1, variable.names = c("beta0", "beta1", "beta2", "beta3", "tau"), n.iter=10000)
+
+# store the samples in a data frame:
+hurricane_freq_sample1 <- data.frame(step = 1:10000, hurricane_freq_sim1[[1]])
+head(hurricane_freq_sample1)
+
+summary(hurricane_freq_sim1)
+plot(hurricane_freq_sim1)
+```
+
+
+
+Try spBayes--nope because we don't have the right sort of data
+```{r}
+
+# could also do this with landfall location instead of location max
+
+View(hurricane_data)
+library(dplyr)
+
+# table of locations where wind speed in max.  in cases where hurricane has multiple obervations at max wind speed, the center of these list locations is given as location of max wind speed
+location_max <- hurricane_data %>%
+  filter(YEAR > 1949) %>%
+  group_by(YEAR, NAME) %>%
+  filter(WIND_KTS == max(WIND_KTS)) %>%
+  summarise(CENTER_LAT = mean(LAT), CENTER_LONG = mean(LONG), WIND_KTS = mean(WIND_KTS)) 
+
+
+# create a matrix of coordinates
+storms_locs <- location_max[,c("CENTER_LONG", "CENTER_LAT")]
+```
+
+
+Try poisson regression
+```{r}
+library(rjags)
+
+head(location_max)
+head(hurricanes_per_year_clean)
+
+hur_mod <- " model {
+  for (i in 1:length(TOTAL_H)) {
+      TOTAL_H[i] ~ dpois(lam[i])
+      log(lam[i]) = beta0 + beta1*X1[i] + beta2*X2[i] + beta3*X3[i]
+  }
+
+  beta0 ~ dnorm(0.0, 1.0/1e6)
+  beta1 ~ dnorm(0.0, 1.0/1e4)
+  beta2 ~ dnorm(0.0, 1.0/1e4)
+  beta3 ~ dnorm(0.0, 1.0/1e4)
+} "
+
+# set up an algorithm to simulate the posterior by combining the model and data (x)
+# set the random number seed
+
+data_jags = as.list(hurricanes_per_year_clean[,2:5])
+str(data_jags)
+
+freq_jags <- jags.model(textConnection(hur_mod),data=list(TOTAL_H = hurricanes_per_year_clean$TOTAL_H, X1 = hurricanes_per_year_clean$temp, X2 = hurricanes_per_year_clean$avg_CO2,X3 = hurricanes_per_year_clean$avg_NAO), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=2000))
+
+# simulate a sample from the posterior
+# note that we specify both mu and tau variables
+freq_sim <- coda.samples(freq_jags, variable.names = c("beta0", "beta1", "beta2", "beta3"), n.iter=50000)
+
+# store the samples in a data frame:
+freq_sample <- data.frame(step = 1:50000, freq_sim[[1]])
+head(freq_sample)
+```
+
+Looking at convergence
+```{r}
+library(MacBayes)
+running_mean_plot(x=freq_sample$beta0, se=TRUE)
+running_mean_plot(x=freq_sample$beta1, se=TRUE)
+running_mean_plot(x=freq_sample$beta2, se=TRUE)
+```
+
+
+
+Testing
+```{r}
+exp(quantile(freq_sample$beta1, c(0.05, 0.975)))
+exp(quantile(freq_sample$beta2, c(0.05, 0.975)))
+exp(quantile(freq_sample$beta3, c(0.05, 0.975)))
+
+mean(freq_sample$beta0)
+mean(freq_sample$beta1)
+mean(freq_sample$beta2)
+mean(freq_sample$beta3)
+```
+
+
+
+Landfall locations
+```{r}
+storm_landfall <- read.csv("/Users/madelineabbott/Desktop/Bayes Capstone/stormData.csv")
+```
+
+
+
+
+
+

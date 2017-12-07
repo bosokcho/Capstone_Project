@@ -21,6 +21,7 @@ library(MASS)
 library(viridis)
 #library(shiny)
 library(rjags)
+library(naivebayes)
 ```
 
 # Progress Made:
@@ -36,21 +37,48 @@ We constructed 3 reserach questions and built simple models for each question.  
 
 # Research questions:
 
+
 ### 1.
-
-Can we predict the location of future hurricanes based on past locations?
-
-* prior, likelihood, posterior (new location)
-
-### 2.
 
 Can we model the change in frequency of hurricanes based on trends in hurricane windspeed and category, temperature, CO2, and NAO index?
 
 
-### 3. 
+<<<<<<< HEAD
+$\lambda_i \sim exp(T*t + C*t + N*t)$ (T is temperature, C is CO2 concentration, and N is NAO index)
 
+hyperpriors:
+=======
+>>>>>>> da6c05e0c62457175780cade464412b1e9a4c0a3
+
+### 2. 
+
+<<<<<<< HEAD
+### 3. 
+=======
 Can we predict the intensity of wind speed based on average temperature in that year, average atmospheric C02 levels in that year, and the NAO index for that year?
 
+### 3.
+>>>>>>> 99dee108620f79ca66c42dd70463280acc851dc1
+
+Can we model the durations of hurricanes over the years?
+
+Model 1:
+
+Prior: $X\sim Norm(\mu,\tau)$
+
+Hyperpriors:
+$\mu\sim (0, 1000)$
+
+$\tau \sim (2, 0.05)$
+
+Model 2:
+
+Prior: $X\sim Norm(mu, tau$
+
+Given length(x)= number of years
+$\mu\sim (6.37, 10^2)$
+
+$\tau \sim (9, 6)$
 
 $c \sim N(368, 1/100)$
 $t \sim N(0.3, 1)$
@@ -60,9 +88,28 @@ $n \sim N(0.016, 1/0.01)$
 ## Building simple models
 
 
-```{r include=FALSE}
-# L0ading the Data
 
+
+# L0ading the Data
+<<<<<<< HEAD
+=======
+
+# Building simple models
+
+## 1.
+
+Can we predict the location of future hurricanes based on past locations?
+
+
+* Poisson distribution, predict based off of past latitude and longitude coordinates
+
+>>>>>>> 99dee108620f79ca66c42dd70463280acc851dc1
+
+
+
+
+
+```{r}
 # Hurricane Frequency
 hurricane_data <- read_csv("Historical_Tropical_Storm_Tracks.csv")
 
@@ -159,6 +206,10 @@ colnames(NAO_yr) <- c("YEAR", "avg_NAO")
 hurricanes_per_year4 <- merge(x = hurricanes_per_year3, y = NAO_yr, by = "YEAR", all.x = TRUE)
 
 # Remove all rows with missing data
+<<<<<<< HEAD
+=======
+#hurricanes_per_year_clean<-na.omit(hurricanes_per_year5)
+>>>>>>> 99dee108620f79ca66c42dd70463280acc851dc1
 hurricanes_per_year_clean<-na.omit(hurricanes_per_year4)
 ```
 
@@ -277,7 +328,49 @@ $$\beta_{3t} \sim N(\mu_{3}, 1000^2)$$
 
 $$(\theta^2)^{-1} \sim Gamma(0.001, 0.001)$$
 
+<<<<<<< HEAD
 $$\mu_{0} \sim N(0, 1000^2)$$
+=======
+$$\mu_{it} \sim N(0, 1000^2)$$
+
+#```{r}
+
+# specify the model
+hurricane_freq_model1 <- "model{
+
+hurricane_model1 <- "model{
+
+  # Data
+  for (i in 1:length(location)) {
+    location[i] ~ dnorm(mu, tau) #dnorm in rjags takes the PRECISION, not std
+  }
+
+
+  #Priors
+  mu ~ dnorm(24, 1/100)  #uses PRECISION
+  tau ~ dgamma(3, 5)
+}"
+
+
+# set up an algorithm to simulate the posterior by combining the model (grade_model) and data (x)
+# set the random number seed
+hurricane_jags1 <- jags.model(textConnection(hurricane_model1), data=list(x=c(lat, long)), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+
+# simulate a sample from the posterior
+# note that we specify both mu and tau variables
+grades_sim <- coda.samples(grades_jags, variable.names = c("mu", "tau"), n.iter=10000)
+
+# store the samples in a data frame:
+hurricane_freq_sample1 <- data.frame(step = 1:100, hurricane_freq_sim1[[1]])
+head(hurricane_freq_sample1)
+
+summary(hurricane_freq_sample1)
+#plot(hurricane_freq_sample1)
+#```
+grades_sample <- data.frame(step = 1:10000, grades_sim[[1]])
+head(grades_sample)
+```
+>>>>>>> 99dee108620f79ca66c42dd70463280acc851dc1
 
 $$\mu_{1} \sim N(0, 1000^2)$$
 
@@ -286,6 +379,20 @@ $$\mu_{2} \sim N(0, 1000^2)$$
 $$\mu_{3} \sim N(0, 1000^2)$$
 
 ```{r}
+<<<<<<< HEAD
+=======
+# get frequency data
+hurricanes_recent <- hurricane_data %>%
+  filter(YEAR > 1949)
+
+hurricanes_per_year <- group_by(hurricanes_recent, YEAR) %>%
+  summarize(length(unique(NAME)))
+colnames(hurricanes_per_year)[2] <- "TOTAL_HURRICANES"
+ggplot(hurricanes_per_year, aes(x = YEAR, y = TOTAL_HURRICANES)) + geom_point()
+
+#temp_per_year <- 
+
+>>>>>>> 99dee108620f79ca66c42dd70463280acc851dc1
 # specify the model
 hurricane_freq_model2 <- "model{
   # Data
@@ -306,6 +413,7 @@ hurricane_freq_model2 <- "model{
 }"
 
 
+<<<<<<< HEAD
 # set up an algorithm to simulate the posterior by combining the model (hurricane_freq_model2) and data (y)
 # set the random number seed
 hurricane_freq_jags2 <- jags.model(textConnection(hurricane_freq_model2), data=list(y=hurricanes_per_year_clean$TOTAL_H, x1=hurricanes_per_year_clean$temp, x2=hurricanes_per_year_clean$avg_CO2, x3=hurricanes_per_year_clean$avg_NAO), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
@@ -320,6 +428,8 @@ head(hurricane_freq_sample2)
 
 summary(hurricane_freq_sample2)
 #plot(hurricane_freq_sample1)
+=======
+>>>>>>> 99dee108620f79ca66c42dd70463280acc851dc1
 ```
 
 
@@ -343,7 +453,6 @@ windspeed_yr
 ```
 # join with hurricane per year table
 HURRICANES <- merge(x = hurricanes_per_year_clean, y = windspeed_yr, by = "YEAR", all.x = TRUE)
-```
 
 
 ```{r}
@@ -388,4 +497,83 @@ summary(windSpeed_sim)
 #densplot(windSpeed_sim)
 ```
 
+## 3
 
+```{r}
+hurricanes_recent<-hurricanes_recent[!(hurricanes_recent$NAME=="NOTNAMED"),]
+
+# Hurricane data only looking at Date and name
+hurricane_time<-subset(hurricanes_recent, select = c(NAME,YEAR,MONTH,DAY))
+#Group data by year and name and subtracting starting time from end time for each hurricane (duration)
+foo <- hurricane_time %>%
+  group_by(YEAR, NAME) %>%
+  mutate(date = as.Date(paste(YEAR, MONTH, DAY, sep='-')), "%Y-%m-%d") %>%
+  summarise(duration = max(date) - min(date))
+#removed outlier
+foo<-foo[!(foo$YEAR==1954 & foo$NAME=="ALICE"),]
+# Averaging duration per year
+foo<-group_by(foo, YEAR)%>%
+  summarise(mean(duration))
+colnames(foo)[2] <- "Average_Duration"
+ggplot(foo, aes(x=Average_Duration))+
+  geom_histogram(boundary=0,color="white", aes(y=..density..))
+ggplot(foo,aes(x=YEAR, y=Average_Duration))+
+  geom_line()
+summary(foo)
+```
+
+```{r}
+library(rjags)
+
+#specify the model
+duration_model <- "model{
+    #Data
+    for(i in 1:length(x)) {
+        x[i] ~ dnorm(mu,tau)
+    }
+
+    #Priors
+    mu ~ dnorm(0,1/1000) 
+    tau ~ dgamma(2, 0.05)
+}"
+
+
+
+duration_jags <- jags.model(textConnection(duration_model), data=list(x=foo$Average_Duration), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+
+
+
+duration_sim <- coda.samples(duration_jags, variable.names=c("mu","tau", "theta"), n.iter=10000)
+
+
+   
+duration_samples <- data.frame(step=1:10000, duration_sim[[1]])
+head(duration_samples)
+```
+
+```{r}
+#specify the model
+duration2_model <- "model{
+    #Data
+    for(i in 1:length(x)) {
+        x[i] ~ dnorm(mu,tau)
+    }
+
+    #Priors
+    mu ~ dnorm(6.37,1/10) 
+    tau ~ dgamma(9, 6)
+}"
+
+
+
+duration2_jags <- jags.model(textConnection(duration2_model), data=list(x=foo$Average_Duration), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+
+
+
+duration2_sim <- coda.samples(duration2_jags, variable.names=c("mu","tau"), n.iter=10000)
+
+
+   
+duration2_samples <- data.frame(step=1:10000, duration2_sim[[1]])
+head(duration2_samples)
+```
