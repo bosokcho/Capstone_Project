@@ -1,0 +1,50 @@
+---
+title: "checkpoint5examples"
+output: html_document
+---
+```{r}
+#head(hurricanes_recent)
+#names(hurricanes_recent)
+#mean(hurricanes_recent$WIND_KTS)
+```
+
+
+```{r}
+library(rjags)
+
+#specify the model
+windSpeed_model <- "model{
+    #Data
+    for(i in 1:length(y)) {
+        y[i] ~ dnorm(theta[i], (0.0658^2)^(-1))
+        theta[i] ~ dnorm(mu, tau)
+
+    }
+    #Priors
+    mu ~ dnorm(0.225, 0.0375^2)
+    tau ~ dgamma(7, 0.035)
+}"
+
+#set up an algorithm to simulate the posterior by 
+#combining the model (games_model) and data (x)
+#set the random number seed
+windSpeed_jags <- jags.model(textConnection(windSpeed_model), data=list(y=hurricanes_recent$WIND_KTS, B1=elect_sub$SampleSize),
+                    inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+
+#simulate a sample from the posterior 
+#note that we specify both mu and tau variables
+windSpeed_sim <- coda.samples(windSpeed_jags, variable.names=c("mu","tau","theta"), n.iter=10000)
+
+
+#store the samples in a data frame:    
+windSpeed_sample <- data.frame(step=1:10000, BB_sim[[1]])
+head(windSpeed_sample)
+```
+
+### Part b
+```{r}
+fig.height=10
+summary(windSpeed_sim)
+#traceplot(windSpeed_sim)
+#densplot(windSpeed_sim)
+```

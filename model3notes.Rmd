@@ -1,0 +1,386 @@
+---
+title: "capstoneNotes"
+output: html_document
+---
+
+# Capstone model notes
+
+When designing the model, for dnorm take the mean of observations
+
+test all models with training and testing data
+
+do the posterior 
+
+make each dnorm distribution for the beta priors the averages and variances of that certain data point 
+
+```{r}
+
+
+        y[i] ~ dnorm(mu,tau)
+
+    mu ~ dnorm(54.7268,1/631.6967)
+    tau ~ dgamma()
+
+
+```
+
+
+```{r include=FALSE}
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(zoo)
+library(lubridate)
+library(ggmap)
+library(reshape2)
+library(MASS)
+library(viridis)
+#library(shiny)
+library(rjags)
+#library(naivebayes)
+```
+
+# Question 3
+
+Can we predict the intensity of wind speed of these disasters based on trends in average yearly temperature, average yearly C02, and yearly NAO index?
+
+## Data
+
+```{r include=FALSE}
+# Loading the Data
+
+# Hurricane Frequency
+hurricane_data <- read_csv("Historical_Tropical_Storm_Tracks.csv")
+
+hurricane_data<-na.omit(hurricane_data)
+hurricane_data<-subset(hurricane_data, select=-c(BTID, AD_TIME))
+
+# select only hurricanes in 1950 and after
+recent_hurricanes <- hurricane_data[hurricane_data$YEAR >= 1950, ]
+
+# table of hurricanes per year
+hurricanes_per_year <- recent_hurricanes %>%
+  group_by(YEAR) %>%
+  summarise(TOTAL_H = n_distinct(NAME))
+
+
+# Temperature Data
+temp_data <- read.csv("ZonAnn.csv")
+temp_data[!complete.cases(temp_data),]
+temp_data<-na.omit(temp_data)
+temp_data<-temp_data[,-(5:15),drop=FALSE]
+temp_recent <- temp_data %>%
+  filter(Year > 1949)
+
+# select only northern hemisphere temp data
+tempN <- subset(temp_recent, select = c(Year, NHem))
+
+# rename the columns
+colnames(tempN) <- c("YEAR", "temp")
+
+# join temperature to hurricanes per year table
+hurricanes_per_year2 <- merge(x = hurricanes_per_year, y = tempN, by = "YEAR", all.x = TRUE)
+
+# CO2 Data
+CO2 <- read_csv("CO2.csv")
+
+# Alter CO2 to remove unnecessary variable trend
+CO2 <- subset(CO2, select = -trend)
+
+# get average by year
+CO2_yr <- CO2 %>%
+  group_by(year) %>%
+  summarise(avg_CO2 = mean(average))
+
+# rename columns
+colnames(CO2_yr) <- c("YEAR", "avg_CO2")
+
+# join with hurricane per year table
+hurricanes_per_year3 <- merge(x = hurricanes_per_year2, y = CO2_yr, by = "YEAR", all.x = TRUE)
+# FIX THIS (bc only 1980 onward available)
+
+# NAO Index Data
+NAO_index1 <- read_csv("NAO_index_monthly.csv",
+    col_types = cols(Apr = col_number(),
+        Aug = col_number(), Dec = col_number(),
+        Feb = col_number(), Jan = col_number(),
+        Jul = col_number(), Jun = col_number(),
+        Mar = col_number(), May = col_number(),
+        Nov = col_number(), Oct = col_number(),
+        Sep = col_number()))
+
+NAO_index2 <- NAO_index1[, -c(14)]
+
+NAO_index3 <- NAO_index2 %>%
+  rename(year = X1) %>%
+  mutate(Jul = replace(Jul, Jul < -50| Jul > 50, "")) %>%
+  mutate(Aug = replace(Aug, Aug < -50| Aug > 50, "")) %>%
+  mutate(Sep = replace(Sep, Sep < -50| Sep > 50, "")) %>%
+  mutate(Oct = replace(Oct, Oct < -50| Oct > 50, "")) %>%
+  mutate(Nov = replace(Nov, Nov < -50| Nov > 50, "")) %>%
+  mutate(Dec = replace(Dec, Dec < -50| Dec > 50, ""))
+
+NAO_index <- NAO_index3[-nrow(NAO_index3),]
+
+# remove 2017 (data for year is incomplete)
+NAO_index <- head(NAO_index, -1)
+
+# reshape table
+NAO_index <- melt(NAO_index, id=c("year"))
+colnames(NAO_index)[2] <- "month"
+colnames(NAO_index)[3] <- "index"
+
+NAO_index$year <- as.factor(NAO_index$year)
+NAO_index$index <- as.numeric(NAO_index$index)
+
+# group by year
+NAO_yr <- NAO_index %>%
+  group_by(year) %>%
+  summarise(avg_NAO = mean(index))
+
+# rename columns
+colnames(NAO_yr) <- c("YEAR", "avg_NAO")
+
+# join with hurricane data
+hurricanes_per_year4 <- merge(x = hurricanes_per_year3, y = NAO_yr, by = "YEAR", all.x = TRUE)
+
+# Remove all rows with missing data
+hurricanes_per_year_clean<-na.omit(hurricanes_per_year4)
+
+# Create new data set with winspeed and year
+windspeed_yr <- hurricane_data %>%
+  group_by(YEAR) %>%
+  summarise(avg_windspeed = mean(WIND_KTS))
+
+# Merge this with the other data set
+HURRICANES <- merge(x = hurricanes_per_year_clean, y = windspeed_yr, by = "YEAR", all.x = TRUE)
+
+```
+
+```{r}
+
+ggplot(HURRICANES, aes(x=avg_windspeed))+
+  geom_histogram(boundary=0,color="white", aes(y=..density..))
+ggplot(HURRICANES,aes(x=YEAR, y=avg_windspeed))+
+  geom_line()
+
+lo <- loess(HURRICANES$avg_windspeed~HURRICANES$YEAR)
+plot(HURRICANES$YEAR,HURRICANES$avg_windspeed)
+lines(predict(lo), col='red', lwd=2)
+
+```
+
+
+```{r}
+
+mean(HURRICANES$avg_CO2)
+mean(HURRICANES$temp)
+mean(HURRICANES$avg_NAO)
+
+var(HURRICANES$avg_CO2)
+var(HURRICANES$temp)
+var(HURRICANES$avg_NAO)
+
+```
+
+
+
+## 3.
+
+Can we predict the severity of these disasters based on trends in hurricane windspeed and category, temperature, C02, and NAO index?
+
+This is an example rjags for this model. It doesn't run yet because of issues with data merging.
+
+```{r}
+#*specify the model
+library(rjags)
+
+windSpeed_model <- "model{
+    #Data
+    for(i in 1:length(y)) {
+        y[i] ~ dnorm(beta0 + beta1*x1[i] + beta2*x2[i] + beta3*x3[i], tau)
+
+    }
+    #Priors
+    beta0 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta1 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta2 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta3 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    tau ~ dgamma(0.001, 0.001)
+
+}"
+
+#*set up an algorithm to simulate the posterior by
+#*combining the model (games_model) and data (x)
+#*set the random number seed
+windSpeed_jags <- jags.model(textConnection(windSpeed_model),data=list(y=HURRICANES$avg_windspeed,x1=HURRICANES$avg_CO2, x2=HURRICANES$temp, x3=HURRICANES$avg_NAO),
+                    inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+
+#*simulate a sample from the posterior
+#*note that we specify both mu and tau variables
+windSpeed_sim <- coda.samples(windSpeed_jags, variable.names=c("beta0","beta1","beta2","beta3"), n.iter=10000)
+
+
+#*store the samples in a data frame:
+windSpeed_sample <- data.frame(step=1:10000, windSpeed_sim[[1]])
+head(windSpeed_sample)
+```
+
+```{r}
+
+plot(windSpeed_sim)
+summary(windSpeed_sim)
+
+```
+
+```{r}
+
+beta0mean <- sum(windSpeed_sample$beta0)/10000
+beta1mean <- sum(windSpeed_sample$beta1)/10000
+beta2mean <- sum(windSpeed_sample$beta2)/10000
+beta3mean <- sum(windSpeed_sample$beta3)/10000
+
+beta0mean
+beta1mean
+beta2mean
+beta3mean
+
+quantile(windSpeed_sample$beta0, c(0.05, 0.975)) 
+quantile(windSpeed_sample$beta1, c(0.05, 0.975))
+quantile(windSpeed_sample$beta2, c(0.05, 0.975))
+quantile(windSpeed_sample$beta3, c(0.05, 0.975))
+
+```
+
+The posterior mean $E(β0|y) = 103.8736$
+The posterior mean $E(β1|y) = -0.1505875$
+The posterior mean $E(β2|y) = 3.911151$
+The posterior mean $E(β3|y) = 0.1622669$
+
+The posterior 95% credible interval for $β0 = (45.61848, 157.49618)$
+The posterior 95% credible interval for $β1 = (-0.2970584, 0.0372634)$
+The posterior 95% credible interval for $β2 = (-5.460935, 14.519758)$
+The posterior 95% credible interval for $β3 = (-2.451443, 3.319495)$
+
+```{r}
+
+HURRICANES1 <- subset(HURRICANES, YEAR < 2001)
+HURRICANES2 <- subset(HURRICANES, YEAR > 2000)
+
+```
+
+## Train model
+
+```{r}
+#*specify the model
+library(rjags)
+
+windSpeed_model2 <- "model{
+    #Data
+    for(i in 1:length(y)) {
+        y[i] ~ dnorm(beta0 + beta1*x1[i] + beta2*x2[i] + beta3*x3[i], tau)
+
+    }
+    #Priors
+    beta0 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta1 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta2 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta3 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    tau ~ dgamma(0.001, 0.001)
+
+}"
+
+#*set up an algorithm to simulate the posterior by
+#*combining the model (games_model) and data (x)
+#*set the random number seed
+windSpeed_jags2 <- jags.model(textConnection(windSpeed_model2),data=list(y=HURRICANES1$avg_windspeed,x1=HURRICANES1$avg_CO2, x2=HURRICANES1$temp, x3=HURRICANES1$avg_NAO),
+                    inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+
+#*simulate a sample from the posterior
+#*note that we specify both mu and tau variables
+windSpeed_sim2 <- coda.samples(windSpeed_jags2, variable.names=c("beta0","beta1","beta2","beta3"), n.iter=10000)
+
+
+#*store the samples in a data frame:
+windSpeed_sample2 <- data.frame(step=1:10000, windSpeed_sim2[[1]])
+head(windSpeed_sample2)
+```
+
+```{r}
+
+beta0mean2 <- sum(windSpeed_sample2$beta0)/10000
+beta1mean2 <- sum(windSpeed_sample2$beta1)/10000
+beta2mean2 <- sum(windSpeed_sample2$beta2)/10000
+beta3mean2 <- sum(windSpeed_sample2$beta3)/10000
+
+beta0mean2
+beta1mean2
+beta2mean2
+beta3mean2
+
+quantile(windSpeed_sample2$beta0, c(0.05, 0.975)) 
+quantile(windSpeed_sample2$beta1, c(0.05, 0.975))
+quantile(windSpeed_sample2$beta2, c(0.05, 0.975))
+quantile(windSpeed_sample2$beta3, c(0.05, 0.975))
+
+var(windSpeed_sample2$beta0) 
+var(windSpeed_sample2$beta1)
+var(windSpeed_sample2$beta2)
+var(windSpeed_sample2$beta3)
+
+```
+
+y = 77.87412 + (-0.07989499)x1 + (9.118487)x2 + (0.2316499)x3
+
+## Test model
+
+```{r}
+
+#*specify the model
+library(rjags)
+
+windSpeed_model3 <- "model{
+    #Data
+    for(i in 1:length(y)) {
+        y[i] ~ dnorm(beta0 + beta1*x1[i] + beta2*x2[i] + beta3*x3[i], tau)
+
+    }
+    #Priors
+    beta0 ~ dnorm(77.87412, 1/1302.464) #PRECISION
+    beta1 ~ dnorm(-0.07989499, 1/0.01111672) #PRECISION
+    beta2 ~ dnorm(9.118487, 1/34.71866) #PRECISION
+    beta3 ~ dnorm(0.2316499, 1/2.514077) #PRECISION
+    tau ~ dgamma(0.001, 0.001)
+
+}"
+
+#*set up an algorithm to simulate the posterior by
+#*combining the model (games_model) and data (x)
+#*set the random number seed
+windSpeed_jags3 <- jags.model(textConnection(windSpeed_model3),data=list(y=HURRICANES2$avg_windspeed,x1=HURRICANES2$avg_CO2, x2=HURRICANES2$temp, x3=HURRICANES2$avg_NAO),
+                    inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+
+#*simulate a sample from the posterior
+#*note that we specify both mu and tau variables
+windSpeed_sim3 <- coda.samples(windSpeed_jags3, variable.names=c("beta0","beta1","beta2","beta3"), n.iter=10000)
+
+
+#*store the samples in a data frame:
+windSpeed_sample3 <- data.frame(step=1:10000, windSpeed_sim3[[1]])
+head(windSpeed_sample3)
+
+```
+
+```{r}
+
+plot(windSpeed_sim3)
+summary(windSpeed_sim3)
+
+```
+
+
+
+
+
+
