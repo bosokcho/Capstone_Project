@@ -34,7 +34,7 @@ hurricane_data<-subset(hurricane_data, select=-c(BTID, AD_TIME))
 
 # select only hurricanes in 1950 and after
 recent_hurricanes <- hurricane_data[hurricane_data$YEAR >= 1950, ] 
-#recent_hurricanes <- recent_hurricanes[!(recent_hurricanes$NAME=="NOTNAMED"),]
+recent_hurricanes <- recent_hurricanes[!(recent_hurricanes$NAME=="NOTNAMED"),]
 
 # table of hurricanes per year
 hurricanes_per_year <- recent_hurricanes %>%
@@ -46,20 +46,23 @@ hurricanes_per_basin <- recent_hurricanes %>%
   summarise(TOTAL_H = n_distinct(NAME, DAY))
 
 #Format Coordinates
-dat<-as.character(recent_hurricanes$LAT)
-new<-substr(dat,1,nchar(dat))
-lat<-as.numeric(new)
-dat<-as.character(recent_hurricanes$LONG)
-new<-substr(dat,1,nchar(dat))
-long<-as.numeric(new)
-long<- -abs(long)
-coord<-as.data.frame(long)
+#dat<-as.character(recent_hurricanes$LAT)
+#new<-substr(dat,1,nchar(dat))
+#lat<-as.numeric(new)
+#dat<-as.character(recent_hurricanes$LONG)
+#new<-substr(dat,1,nchar(dat))
+#long<-as.numeric(new)
+#long<- -abs(long)
+#coord<-as.data.frame(long)
 #Add year and name
-year<-as.character(recent_hurricanes$YEAR)
-name<-as.character(recent_hurricanes$NAME)
-coord<-cbind(year, name, coord, lat)
+#year<-as.character(recent_hurricanes$YEAR)
+#name<-as.character(recent_hurricanes$NAME)
+#coord<-cbind(year, name, coord, lat)
 
+```
 
+Sub-data
+```{r}
 # Temperature Data
 temp_data <- read.csv("ZonAnn.csv")
 temp_data[!complete.cases(temp_data),]
@@ -319,7 +322,7 @@ summary(hurricane_freq_sample2)
 #plot(hurricane_freq_sample1)
 ```
 
-### Question 1.
+### Question 2.
 
 Can we model  the trend of average durations of hurricanes over the years?
 
@@ -343,7 +346,7 @@ $$\mu\sim N(6.37, 10^2)$$
 $$\tau \sim \Gamma(9, 6)$$
 
 Create new dataset on average durations per year
-```{r}
+```{r echo=FALSE}
 # Hurricane data only looking at Date and name
 hurricane_time<-subset(hurricanes_recent, select = c(NAME,YEAR,MONTH,DAY))
 
@@ -375,21 +378,26 @@ library(rjags)
 duration_model <- "model{
     #Data
     for(i in 1:length(x)) {
-        x[i] ~ dnorm(mu,tau)
+        y[i] ~ dgamma(a[i],b)
+        a[i] ~ dpois(lambda[i])
     }
 
     #Priors
-    mu ~ dnorm(6.37,1/1000)
-    tau ~ dgamma(9, 6)
+    b ~ dgamma(1,1)
+    beta0 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta1 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta2 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta3 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    tau ~ dgamma(0.001, 0.001)
 }"
 
 
 
-duration_jags <- jags.model(textConnection(duration_model), data=list(x=foo$Average_Duration), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+duration_jags <- jags.model(textConnection(duration_model), data=list(y=foo_train$Average_Duration, x1=hurricanes_per_year_clean$temp, x2=hurricanes_per_year_clean$avg_CO2, x3=hurricanes_per_year_clean$avg_NAO), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
 
 
 
-duration_sim <- coda.samples(duration_jags, variable.names=c("mu","tau", "theta"), n.iter=10000)
+duration_sim <- coda.samples(duration_jags, variable.names=c("b","beta0","beta1","beta2","beta3", "tau"), n.iter=10000)
 
 duration_samples <- data.frame(step=1:10000, duration_sim[[1]])
 head(duration_samples)
@@ -426,7 +434,7 @@ duration2_model <- "model{
     }
 
     #Priors
-    beta0 ~ dnorm(6.37,1/1000)
+    beta0 ~ dnorm(6,1/1000)
     beta1~dnorm(0,1/1000)
     tau ~ dgamma(9, 6)
 }"
