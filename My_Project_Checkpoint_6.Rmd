@@ -125,14 +125,15 @@ hurricanes_per_year4 <- merge(x = hurricanes_per_year3, y = NAO_yr, by = "YEAR",
 hurricanes_per_year_clean<-na.omit(hurricanes_per_year4)
 ```
 
-# Progress Made:
+# Progress Made: 
+We updated the frequency model as our main model. We attempted running both spBayes and Poisson regression models and decided our data is more suited for Poisson regression. We also tested our poisson model and plotted the running mean plots.
 
 
 # Group Member Roles:
 
-* Madeline--
-* Daisy--
-* Aidan--
+* Madeline-- Normal-Normal frequency model and poisson regression for frequency
+* Daisy-- Still looking into how to find only landfall coordinates and updating duration model
+* Aidan-- Also researched and ran poisson regression and spBayes.
 
 
 # Modeling:
@@ -141,9 +142,6 @@ hurricanes_per_year_clean<-na.omit(hurricanes_per_year4)
 
 
 ## Question 1.
-
-
-## Question 2.
 
 
 To do:
@@ -307,7 +305,8 @@ Try spBayes--nope because we don't have the right sort of data
 
 # could also do this with landfall location instead of location max
 
-View(hurricane_data)
+#View(hurricane_data) # checking our data
+
 library(dplyr)
 
 # table of locations where wind speed in max.  in cases where hurricane has multiple obervations at max wind speed, the center of these list locations is given as location of max wind speed
@@ -384,10 +383,78 @@ mean(freq_sample$beta3)
 
 
 Landfall locations
-```{r}
+```{r eval=FALSE}
 storm_landfall <- read.csv("/Users/madelineabbott/Desktop/Bayes Capstone/stormData.csv")
 ```
 
+## Question 2.
+
+What is the duration of hurricanes per year based on the frequency model?
+
+$$Y\sim \Gamma(\lambda_i, r)$$
+
+
+I am trying to run a gamma likelihood parametrization, but it has not been fully completed yet so it should not be running.
+
+```{r}
+hurricanes_recent<-recent_hurricanes[!(recent_hurricanes$NAME=="NOTNAMED"),]
+
+# Hurricane data only looking at Date and name
+hurricane_time<-subset(hurricanes_recent, select = c(NAME,YEAR,MONTH,DAY))
+
+#Group data by year and name and subtracting starting time from end time for each hurricane (duration)
+foo <- hurricane_time %>%
+  group_by(YEAR, NAME) %>%
+  mutate(date = as.Date(paste(YEAR, MONTH, DAY, sep='-')), "%Y-%m-%d") %>%
+  summarise(duration = max(date) - min(date))
+
+#removed outlier
+foo<-foo[!(foo$YEAR==1954 & foo$NAME=="ALICE"),]
+
+# Averaging duration per year
+foo<-group_by(foo, YEAR)%>%
+  summarise(mean(duration))
+colnames(foo)[2] <- "Average_Duration"
+ggplot(foo, aes(x=Average_Duration))+
+  geom_histogram(boundary=0,color="white", aes(y=..density..))
+ggplot(foo,aes(x=YEAR, y=Average_Duration))+
+  geom_line()
+```
+
+```{r, eval=FALSE}
+library(rjags)
+
+head(location_max)
+head(hurricanes_per_year_clean)
+
+duration_mod <- " model {
+  for (i in 1:length(TOTAL_H)) {
+      y[i] ~ dgamma(lam[i], b)
+      log(lam[i]) = beta0 + beta1*X1[i] + beta2*X2[i] + beta3*X3[i]
+  }
+  r~dpois(1)
+  beta0 ~ dnorm(0.0, 1.0/1e6)
+  beta1 ~ dnorm(0.0, 1.0/1e4)
+  beta2 ~ dnorm(0.0, 1.0/1e4)
+  beta3 ~ dnorm(0.0, 1.0/1e4)
+} "
+
+# set up an algorithm to simulate the posterior by combining the model and data (x)
+# set the random number seed
+
+data_jags = as.list(foo[,2])
+str(data_jags)
+
+duration_jags <- jags.model(textConnection(hur_mod),data=list(y = foo$Average_Duration, X1 = hurricanes_per_year_clean$temp, X2 = hurricanes_per_year_clean$avg_CO2,X3 = hurricanes_per_year_clean$avg_NAO), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=2000))
+
+# simulate a sample from the posterior
+# note that we specify both mu and tau variables
+duration_sim <- coda.samples(duration_jags, variable.names = c("r", "beta0", "beta1", "beta2", "beta3"), n.iter=50000)
+
+# store the samples in a data frame:
+duration_sample <- data.frame(step = 1:50000, freq_sim[[1]])
+head(duration_sample)
+```
 
 
 
