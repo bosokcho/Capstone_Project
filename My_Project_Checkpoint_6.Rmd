@@ -260,8 +260,21 @@ $$\beta_{2} \sim N(0, 1000^2)$$
 
 $$\beta_{3} \sim N(0, 1000^2)$$
 
-$$(\theta^2)^{-1} \sim Gamma(0.001, 0.001)$$
+$$(\theta^2)^{-1} \sim \ Gamma(0.001, 0.001)$$
 
+###Training and Testing models
+```{r}
+data(hurricanes_per_year_clean)
+
+## 80% of the sample size
+smp_size <- floor(0.8 * nrow(hurricanes_per_year_clean))
+
+set.seed(123)
+train_ind <- sample(seq_len(nrow(hurricanes_per_year_clean)), size = smp_size)
+
+hurricanes_per_year_clean_train <- hurricanes_per_year_clean[train_ind, ]
+hurricanes_per_year_clean_test <- hurricanes_per_year_clean[-train_ind, ]
+```
 
 ### normal normal
 
@@ -284,7 +297,7 @@ hurricane_freq_model1 <- "model{
 
 # set up an algorithm to simulate the posterior by combining the model (hurricane_freq_model1) and data (y)
 # set the random number seed
-hurricane_freq_jags1 <- jags.model(textConnection(hurricane_freq_model1), data=list(y=hurricanes_per_year_clean$TOTAL_H, x1=hurricanes_per_year_clean$temp, x2=hurricanes_per_year_clean$avg_CO2, x3=hurricanes_per_year_clean$avg_NAO), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+hurricane_freq_jags1 <- jags.model(textConnection(hurricane_freq_model1), data=list(y=hurricanes_per_year_clean_train$TOTAL_H, x1=hurricanes_per_year_clean_train$temp, x2=hurricanes_per_year_clean_train$avg_CO2, x3=hurricanes_per_year_clean_train$avg_NAO), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
 
 # simulate a sample from the posterior
 # note that we specify both mu and tau variables
@@ -319,6 +332,7 @@ location_max <- hurricane_data %>%
 
 # create a matrix of coordinates
 storms_locs <- location_max[,c("CENTER_LONG", "CENTER_LAT")]
+
 ```
 
 
@@ -347,14 +361,14 @@ hur_mod <- " model {
 data_jags = as.list(hurricanes_per_year_clean[,2:5])
 str(data_jags)
 
-freq_jags <- jags.model(textConnection(hur_mod),data=list(TOTAL_H = hurricanes_per_year_clean$TOTAL_H, X1 = hurricanes_per_year_clean$temp, X2 = hurricanes_per_year_clean$avg_CO2,X3 = hurricanes_per_year_clean$avg_NAO), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=2000))
+freq_jags <- jags.model(textConnection(hur_mod),data=list(TOTAL_H = hurricanes_per_year_clean_train$TOTAL_H, X1 = hurricanes_per_year_clean_train$temp, X2 = hurricanes_per_year_clean_train$avg_CO2,X3 = hurricanes_per_year_clean_train$avg_NAO), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=2000))
 
 # simulate a sample from the posterior
 # note that we specify both mu and tau variables
-freq_sim <- coda.samples(freq_jags, variable.names = c("beta0", "beta1", "beta2", "beta3"), n.iter=50000)
+freq_sim <- coda.samples(freq_jags, variable.names = c("beta0", "beta1", "beta2", "beta3"), n.iter=2000000)
 
 # store the samples in a data frame:
-freq_sample <- data.frame(step = 1:50000, freq_sim[[1]])
+freq_sample <- data.frame(freq_sim[[1]])
 head(freq_sample)
 ```
 
@@ -414,7 +428,11 @@ foo<-foo[!(foo$YEAR==1954 & foo$NAME=="ALICE"),]
 # Averaging duration per year
 foo<-group_by(foo, YEAR)%>%
   summarise(mean(duration))
+# Name second column of data as Average_Duration
 colnames(foo)[2] <- "Average_Duration"
+#create durations with temperature data, CO2 data, NAOI data and frequency data
+durations <- merge(x = hurricanes_per_year_clean, y = foo, by = "YEAR", all.x = TRUE)
+
 ggplot(foo, aes(x=Average_Duration))+
   geom_histogram(boundary=0,color="white", aes(y=..density..))
 ggplot(foo,aes(x=YEAR, y=Average_Duration))+
@@ -423,9 +441,6 @@ ggplot(foo,aes(x=YEAR, y=Average_Duration))+
 
 ```{r, eval=FALSE}
 library(rjags)
-
-head(location_max)
-head(hurricanes_per_year_clean)
 
 duration_mod <- " model {
   for (i in 1:length(TOTAL_H)) {
@@ -442,10 +457,10 @@ duration_mod <- " model {
 # set up an algorithm to simulate the posterior by combining the model and data (x)
 # set the random number seed
 
-data_jags = as.list(foo[,2])
+data_jags = as.list(durations[,3:6])
 str(data_jags)
 
-duration_jags <- jags.model(textConnection(hur_mod),data=list(y = foo$Average_Duration, X1 = hurricanes_per_year_clean$temp, X2 = hurricanes_per_year_clean$avg_CO2,X3 = hurricanes_per_year_clean$avg_NAO), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=2000))
+duration_jags <- jags.model(textConnection(duration_mod),data=list(y = durations$Average_Duration, X1 = durations$temp, X2 = durations$avg_CO2,X3 = durations$avg_NAO), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=2000))
 
 # simulate a sample from the posterior
 # note that we specify both mu and tau variables
