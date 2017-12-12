@@ -178,17 +178,17 @@ ggplot(hurricanes_per_year_clean, aes(x = avg_NAO)) + geom_histogram(color = 'wh
 
 Plot hurricanes per year by temperature
 ```{r}
-ggplot(hurricanes_per_year_clean, aes(x = temp, y = TOTAL_H)) + geom_point(color = "firebrick1")
+ggplot(hurricanes_per_year_clean, aes(x = temp, y = TOTAL_H)) + geom_point(color = "firebrick1") + xlab("Temperature") + ylab("Total Number of Hurricanes")
 ```
 
 Hurricanes per year by CO2 levels
 ```{r}
-ggplot(hurricanes_per_year_clean, aes(x = avg_CO2, y = TOTAL_H)) + geom_point(color = "darkslateblue")
+ggplot(hurricanes_per_year_clean, aes(x = avg_CO2, y = TOTAL_H)) + geom_point(color = "darkslateblue") + xlab("CO2 Concentration") + ylab("Total Number of Hurricanes")
 ```
 
 Hurricanes per year by NAO levels
 ```{r}
-ggplot(hurricanes_per_year_clean, aes(x = avg_NAO, y = TOTAL_H)) + geom_point(color = "aquamarine4")
+ggplot(hurricanes_per_year_clean, aes(x = avg_NAO, y = TOTAL_H)) + geom_point(color = "aquamarine4") + xlab("NAO Index") + ylab("Total Number of Hurricanes")
 ```
 
 
@@ -362,6 +362,7 @@ library(MacBayes)
 running_mean_plot(x=freq_sample$beta0, se=TRUE)
 running_mean_plot(x=freq_sample$beta1, se=TRUE)
 running_mean_plot(x=freq_sample$beta2, se=TRUE)
+running_mean_plot(x=freq_sample$beta3, se=TRUE)
 ```
 
 Testing
