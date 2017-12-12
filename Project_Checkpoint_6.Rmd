@@ -34,20 +34,36 @@ hurricane_data<-subset(hurricane_data, select=-c(BTID, AD_TIME))
 # Recent Hurricanes--select only hurricanes in 1950 and after
 recent_hurricanes <- hurricane_data[hurricane_data$YEAR >= 1950, ] 
 recent_hurricanes <- recent_hurricanes[!(recent_hurricanes$NAME=="NOTNAMED"),]
-#Format Coordinates
-dat<-as.character(recent_hurricanes$LAT)
-new<-substr(dat,1,nchar(dat))
-lat<-as.numeric(new)
-dat<-as.character(recent_hurricanes$LONG)
-new<-substr(dat,1,nchar(dat))
-long<-as.numeric(new)
-long<- -abs(long)
-coord<-as.data.frame(long)
-#Add year and name
-year<-as.character(recent_hurricanes$YEAR)
-name<-as.character(recent_hurricanes$NAME)
-coord<-cbind(year, name, coord, lat)
+<<<<<<< HEAD
 
+# table of hurricanes per year
+hurricanes_per_year <- recent_hurricanes %>%
+  group_by(YEAR) %>%
+  summarise(TOTAL_H = n_distinct(NAME))
+
+hurricanes_per_basin <- recent_hurricanes %>%
+  group_by(BASIN) %>%
+  summarise(TOTAL_H = n_distinct(NAME, DAY))
+
+=======
+>>>>>>> a22f559e9cd25af3504a9da11315b346e4d5b40e
+#Format Coordinates
+#dat<-as.character(recent_hurricanes$LAT)
+#new<-substr(dat,1,nchar(dat))
+#lat<-as.numeric(new)
+#dat<-as.character(recent_hurricanes$LONG)
+#new<-substr(dat,1,nchar(dat))
+#long<-as.numeric(new)
+#long<- -abs(long)
+#coord<-as.data.frame(long)
+#Add year and name
+#year<-as.character(recent_hurricanes$YEAR)
+#name<-as.character(recent_hurricanes$NAME)
+#coord<-cbind(year, name, coord, lat)
+
+<<<<<<< HEAD
+```
+=======
 # Hurricane Frequency
 # table of hurricanes per year
 hurricanes_per_year <- recent_hurricanes %>%
@@ -56,7 +72,10 @@ hurricanes_per_year <- recent_hurricanes %>%
 hurricanes_per_basin <- recent_hurricanes %>%
   group_by(BASIN) %>%
   summarise(TOTAL_H = n_distinct(NAME, DAY))
+>>>>>>> a22f559e9cd25af3504a9da11315b346e4d5b40e
 
+Sub-data
+```{r}
 # Temperature Data
 temp_data <- read.csv("ZonAnn.csv")
 temp_data[!complete.cases(temp_data),]
@@ -365,6 +384,9 @@ running_mean_plot(x=freq_sample$beta2, se=TRUE)
 running_mean_plot(x=freq_sample$beta3, se=TRUE)
 ```
 
+<<<<<<< HEAD
+### Question 2.
+=======
 Testing
 ```{r}
 exp(quantile(freq_sample$beta1, c(0.05, 0.975)))
@@ -376,6 +398,7 @@ mean(freq_sample$beta1)
 mean(freq_sample$beta2)
 mean(freq_sample$beta3)
 ```
+>>>>>>> a22f559e9cd25af3504a9da11315b346e4d5b40e
 
 ```{r}
 preds1 = rep(0, 29)
@@ -401,8 +424,12 @@ Can we model  the trend of average durations of hurricanes over the years?
 \
 
 Create new dataset on average durations per year
+<<<<<<< HEAD
+```{r echo=FALSE}
+=======
 
 ```{r}
+>>>>>>> a22f559e9cd25af3504a9da11315b346e4d5b40e
 # Hurricane data only looking at Date and name
 hurricane_time<-subset(recent_hurricanes, select = c(NAME,YEAR,MONTH,DAY))
 
@@ -461,17 +488,32 @@ Build the model
 duration_model <- "model{
     #Data
     for(i in 1:length(x)) {
-        x[i] ~ dnorm(mu,tau)
+        y[i] ~ dgamma(a[i],b)
+        a[i] ~ dpois(lambda[i])
     }
 
     #Priors
-    mu ~ dnorm(6.37,1/1000)
-    tau ~ dgamma(9, 6)
+    b ~ dgamma(1,1)
+    beta0 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta1 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta2 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta3 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    tau ~ dgamma(0.001, 0.001)
 }"
 
+<<<<<<< HEAD
+
+
+duration_jags <- jags.model(textConnection(duration_model), data=list(y=foo_train$Average_Duration, x1=hurricanes_per_year_clean$temp, x2=hurricanes_per_year_clean$avg_CO2, x3=hurricanes_per_year_clean$avg_NAO), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+
+
+
+duration_sim <- coda.samples(duration_jags, variable.names=c("b","beta0","beta1","beta2","beta3", "tau"), n.iter=10000)
+=======
 duration_jags <- jags.model(textConnection(duration_model), data=list(x=foo$Average_Duration), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
 
 duration_sim <- coda.samples(duration_jags, variable.names=c("mu","tau", "theta"), n.iter=10000)
+>>>>>>> a22f559e9cd25af3504a9da11315b346e4d5b40e
 
 duration_samples <- data.frame(step=1:10000, duration_sim[[1]])
 head(duration_samples)
@@ -522,7 +564,7 @@ duration2_model <- "model{
     }
 
     #Priors
-    beta0 ~ dnorm(6.37,1/1000)
+    beta0 ~ dnorm(6,1/1000)
     beta1~dnorm(0,1/1000)
     tau ~ dgamma(9, 6)
 }"
