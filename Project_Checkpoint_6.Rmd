@@ -695,14 +695,13 @@ library(rjags)
 windSpeed_model <- "model{
     #Data
     for(i in 1:length(y)) {
-        y[i] ~ dnorm(beta0 + beta1*x1[i] + beta2*x2[i] + beta3*x3[i], tau)
+        y[i] ~ dnorm(beta0 + beta1*x1[i] + beta2*x2[i], tau)
 
     }
     #Priors
     beta0 ~ dnorm(0, 1/(1000)^2) #PRECISION
     beta1 ~ dnorm(0, 1/(1000)^2) #PRECISION
     beta2 ~ dnorm(0, 1/(1000)^2) #PRECISION
-    beta3 ~ dnorm(0, 1/(1000)^2) #PRECISION
     tau ~ dgamma(0.001, 0.001)
 
 }"
@@ -710,16 +709,15 @@ windSpeed_model <- "model{
 #*set up an algorithm to simulate the posterior by
 #*combining the model (games_model) and data (x)
 #*set the random number seed
-windSpeed_jags <- jags.model(textConnection(windSpeed_model),data=list(y=HURRICANES$avg_windspeed,x1=HURRICANES$avg_CO2, x2=HURRICANES$temp, x3=HURRICANES$avg_NAO),
-                    inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+windSpeed_jags <- jags.model(textConnection(windSpeed_model),data=list(y=HURRICANES$avg_windspeed,x1=HURRICANES$avg_CO2,x2=HURRICANES$avg_NAO), inits = list(beta0 = 5, beta1 = 0, beta2 = 0))
 
 #*simulate a sample from the posterior
 #*note that we specify both mu and tau variables
-windSpeed_sim <- coda.samples(windSpeed_jags, variable.names=c("beta0","beta1","beta2","beta3"), n.iter=150000)
+windSpeed_sim <- coda.samples(windSpeed_jags, variable.names=c("beta0","beta1","beta2"), n.iter=500000)
 
 
 #*store the samples in a data frame:
-windSpeed_sample <- data.frame(step=1:150000, windSpeed_sim[[1]])
+windSpeed_sample <- data.frame(step=1:500000, windSpeed_sim[[1]])
 head(windSpeed_sample)
 
 ```
@@ -745,21 +743,11 @@ quantile(windSpeed_sample$beta3, c(0.05, 0.975))
 
 ```
 
-The posterior mean $E(β0|y) = 103.8736$
-The posterior mean $E(β1|y) = -0.1505875$
-The posterior mean $E(β2|y) = 3.911151$
-The posterior mean $E(β3|y) = 0.1622669$
-
-The posterior 95% credible interval for $β0 = (45.61848, 157.49618)$
-The posterior 95% credible interval for $β1 = (-0.2970584, 0.0372634)$
-The posterior 95% credible interval for $β2 = (-5.460935, 14.519758)$
-The posterior 95% credible interval for $β3 = (-2.451443, 3.319495)$
 
 ```{r}
 
 running_mean_plot(x = windSpeed_sample$beta1, se = TRUE)
 running_mean_plot(x = windSpeed_sample$beta2, se = TRUE)
-running_mean_plot(x = windSpeed_sample$beta3, se = TRUE)
 
 ```
 
