@@ -201,7 +201,6 @@ $$\beta_{2} \sim N(0, 1e6)$$
 
 Simulating the model using rjags:
 ```{r}
-head(location_max)
 head(hurricanes_per_year_clean)
 
 hur_mod <- " model {
@@ -246,7 +245,6 @@ library(MacBayes)
 running_mean_plot(x=freq_sample_small$beta0, se=TRUE)
 running_mean_plot(x=freq_sample_small$beta1, se=TRUE)
 running_mean_plot(x=freq_sample_small$beta2, se=TRUE)
-running_mean_plot(x=freq_sample_small$beta3, se=TRUE)
 ```
 
 Based on the running mean plots, parameters look like they have converged.  Parameter mean values and 95% credible intervals are as follows:
@@ -313,9 +311,6 @@ head(hurricanes_per_zone)
 
 Poisson regression
 ```{r}
-temp.glm = glm(total~ temp, family="poisson", data=hurricanes_per_zone)
-summary(temp.glm)
-
 hur_mod2 <- " model {
   for (i in 1:length(total)) {
       total[i] ~ dpois(lam[i])
@@ -353,6 +348,151 @@ mean(freq_sample2$beta0)
 mean(freq_sample2$beta1)
 ```
 
+
+
+
+
+```{r}
+
+library(maps)
+library(mapdata)
+library(maptools)
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(rgdal)
+library(sp)
+library(dplyr)
+hurricane_data <- read.csv("Historical_Tropical_Storm_Tracks.csv")
+#area <- readShapePoly("ne_10m_coastline.shp")
+
+hurricane_data<-na.omit(hurricane_data)
+hurricane_data<-subset(hurricane_data, select=-c(FID, BTID, AD_TIME))
+
+# select only hurricanes in 1950 and after
+recent_hurricanes <- hurricane_data[hurricane_data$YEAR >= 1950, ] 
+recent_hurricanes$Yearmonthday<-as.numeric(do.call(paste, c(recent_hurricanes[c("YEAR", "MONTH","DAY")], sep = ""))) #Creating a Yearmonth columns which will be useful for identifying the landfall date
+
+
+global<-map_data("world")
+
+location_max <- hurricane_data %>%
+  filter(YEAR > 1949) %>%
+  group_by(YEAR, NAME) 
+global[1:2]<-round(global[1:2],1)
+landfall <-merge(location_max, global, by.x = c("LONG","LAT"), by.y = c("long","lat"))
+landfall<-subset(landfall, select =-c(group,order,region,subregion))
+head(landfall)
+library(rworldmap)
+newmap <- getMap(resolution = "low")
+plot(newmap)
+points(landfall$LONG, landfall$LAT, col = "red", cex = .6)
+```
+```{r}
+require(maps)
+require(sp)
+library(rgeos)
+library(gstat)
+dat<-as.character(recent_hurricanes$LAT)
+new<-substr(dat,1,nchar(dat))
+lat<-as.numeric(new)
+dat<-as.character(recent_hurricanes$LONG)
+new<-substr(dat,1,nchar(dat))
+long<-as.numeric(new)
+long<- -abs(long)
+coord<-as.data.frame(long)
+coord<-cbind(coord, lat)
+
+global<-map("world", fill=TRUE)
+IDs <- sapply(strsplit(global$names, ":"), function(x) x[1])
+global <- map2SpatialPolygons(global, IDs=IDs, proj4string=CRS("+proj=longlat +datum=WGS84"))
+
+# First I need to dissolve and create a unique polygon, then I'll create the coastal boundary
+crs  <- CRS("+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-110 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m") 
+global.p<-spTransform(global, crs)
+global.p<-gBuffer(global.p, byid=TRUE, width=1) 
+global.u<- gUnaryUnion(global.p)
+global.l<-as(global,'SpatialLines') 
+crs.new<-CRS(proj4string(global))
+global.l<-spTransform(global.l, crs.new)
+```
+
+```{r}
+recent_hurricanes <- recent_hurricanes %>%
+  mutate(ID = group_indices_(recent_hurricanes, .dots=c("YEAR", "NAME"))) 
+head(recent_hurricanes)
+
+hu.ID<-unique(recent_hurricanes$ID) # Identifying the numbers of hurricanes on the dataset
+m.data<-NULL # Initiate a NULL matrix where to store the results recursively 
+
+options(warn=-1) # Removing the warning messages coming from the krige function
+for (i in 1:length(hu.ID)) {
+  
+  id.storm<-hu.ID[i]
+  storm.i<-recent_hurricanes[recent_hurricanes$ID==id.storm,]
+    
+  # Transform the Hurricane track into a line
+  storm.c<- data.frame(x=storm.i$LONG,y=storm.i$LAT)
+  coordinates(storm.c)<- ~x+y 
+  proj4string(storm.c) <- CRS(proj4string(global))
+  storm.l <- SpatialLines(list(Lines(list(Line(coordinates(storm.c))),"X")))
+  proj4string(storm.l) <- CRS(proj4string(global)) ## attributing the coordinate system of the map (WGS84) to the ike track
+    
+  # Finding the landfall point of the hurricane (intersection between the track and the US coastline)
+  cross<-gIntersection(storm.l,global.l)
+
+  
+  # If there is intersection, identify the wind speed, date (year and month) and State at landfall
+  
+  if (length(cross)>0)
+  {
+    storm.int<-data.frame(x=storm.i$LONG,y=storm.i$LAT,tim=storm.i$Yearmonthday)
+    colnames(storm.int)<-c("Long","Lat","Yearmonth")
+  
+    # Convert the event track info into a spatial data frame
+    coordinates(storm.int) <- ~Long+Lat
+    proj4string(storm.int) <- CRS(proj4string(global))
+    
+    # Compute the interpolated values of the wind speed at landfall
+    #landfall.k <- krige(Max_Speed~1, storm.int, cross, debug.level = 0)
+    #landfall.w<-landfall.k$var1.pred
+  
+    # Compute the interpolated values of the Year month at landfall
+    landfall.kt <- krige(Yearmonth~1, storm.int, cross, debug.level = 0)
+    landfall.t<-landfall.kt$var1.pred
+    
+    landfall.p<-cbind(cross@coords,landfall.t)
+    colnames(landfall.p)[3]<- ("Time")
+    
+    # Multiple landfalls can occure (Hurricane eye can intersect the coastline several times)
+    # I will consider only one landfall per storm and pick the landfall point with the maximum wind
+    lfmax.p<-landfall.p[which.max(landfall.p[,3]),]
+    lfmax.p<-t(as.matrix(lfmax.p))
+    lfmax.p[,c("Time")]<-round(lfmax.p[,c("Time")]) ## rounding the time in case the landfall point happens between 2 months
+    
+    # Identifying the state where landfall occurs
+    lfmax.p1<-data.frame(x=lfmax.p[1], y=lfmax.p[2], wmax=lfmax.p[3])
+    coordinates(lfmax.p1)<-~x+y
+    proj4string(lfmax.p1) <- CRS(proj4string(global))
+    crs  <- CRS("+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-110 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m") 
+    lfmax.p1_pla<-spTransform(lfmax.p1, crs)
+    usa_pla<-spTransform(global, crs)
+    dist<-gDistance(lfmax.p1_pla,usa_pla, byid=TRUE)
+    state.name<-rownames(dist)[which.min(dist)]
+     
+    # storm info to append
+    st.info<-storm.i[1,c("ID","Name")]
+    st.info<-cbind(st.info,state.name,lfmax.p)
+    st.info$Year<-substr(st.info$Time,1,4)
+    st.info$Month<-substr(st.info$Time,5,6)
+    st.info<-st.info[,-which(colnames(st.info)=="Time")]
+  
+    # Append storm info
+    m.data<-rbind(m.data,st.info)
+    }
+} 
+options(warn=0)
+```
 
 
 
