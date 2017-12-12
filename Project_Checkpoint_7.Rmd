@@ -269,11 +269,7 @@ Beta2 has a mean of 0.001306308 and a 95% CI of (-0.1105324, 0.1350339).
 From these results, we conclude that average annual CO2 concentration and NAO index are not useful predictors of hurricane frequency.
 
 
-## Attempting spBayes
-
-Get landfall data
-But what about the coordinates
-Also we need temperature data by locations
+## Hurricanes by Zones
 
 Divide northern hemisphere into four zones.  Get temperature from 1950 for each of these zones.
 ```{r}
@@ -309,7 +305,7 @@ head(hurricanes_per_zone)
 ```
 
 
-Poisson regression
+Poisson regression--just with temperature
 ```{r}
 hur_mod2 <- " model {
   for (i in 1:length(total)) {
@@ -347,6 +343,77 @@ quantile(freq_sample2$beta1, c(0.05, 0.975))
 mean(freq_sample2$beta0)
 mean(freq_sample2$beta1)
 ```
+
+beta1, x1 is temp; beta2, x2 is zone
+
+
+Poisson regression--with temperature and location zone
+```{r}
+hur_mod3 <- " model {
+  for (i in 1:length(total)) {
+      total[i] ~ dpois(lam[i])
+      log(lam[i]) = beta0 + beta1*X1[i] + beta2[X2[i]]
+  }
+
+  beta0 ~ dnorm(0.0, 1.0/1e4)
+  beta1 ~ dnorm(0.0, 1.0/1e4)
+  beta2[1] <- 0
+  for (i in 2:4) {
+    beta2 ~ dnorm(0.0, 1.0/1e4)
+  }
+} "
+
+# set up an algorithm to simulate the posterior by combining the model and data (x)
+# set the random number seed
+freq_jags3 <- jags.model(textConnection(hur_mod3),data=list(total = hurricanes_per_zone$total, X1 = hurricanes_per_zone$temp, X2 = hurricanes_per_zone$zone), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=2000))
+
+# simulate a sample from the posterior
+freq_sim3 <- coda.samples(freq_jags3, variable.names = c("beta0", "beta1", "beta2"), n.iter=1000)
+
+# store the samples in a data frame:
+freq_sample3 <- data.frame(step = 1:1000, freq_sim3[[1]])
+head(freq_sample3, 10)
+```
+
+Check for convergence
+```{r}
+running_mean_plot(x=freq_sample3$beta0, se=TRUE)
+running_mean_plot(x=freq_sample3$beta1, se=TRUE)
+
+running_mean_plot(x=freq_sample3$beta2.2., se=TRUE)
+running_mean_plot(x=freq_sample3$beta2.3., se=TRUE)
+running_mean_plot(x=freq_sample3$beta2.4., se=TRUE)
+```
+
+
+
+Look at parameter values
+```{r}
+quantile(freq_sample3$beta0, c(0.05, 0.975)) 
+quantile(freq_sample3$beta1, c(0.05, 0.975))
+quantile(freq_sample3$beta2.2., c(0.05, 0.975))
+quantile(freq_sample3$beta2.3., c(0.05, 0.975))
+quantile(freq_sample3$beta2.4., c(0.05, 0.975))
+
+mean(freq_sample3$beta0)
+mean(freq_sample3$beta1)
+mean(freq_sample3$beta2.2.)
+mean(freq_sample3$beta2.3.)
+mean(freq_sample3$beta2.4.)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
