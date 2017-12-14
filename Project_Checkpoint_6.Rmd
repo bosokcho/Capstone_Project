@@ -34,7 +34,7 @@ hurricane_data<-subset(hurricane_data, select=-c(BTID, AD_TIME))
 # Recent Hurricanes--select only hurricanes in 1950 and after
 recent_hurricanes <- hurricane_data[hurricane_data$YEAR >= 1950, ] 
 recent_hurricanes <- recent_hurricanes[!(recent_hurricanes$NAME=="NOTNAMED"),]
-<<<<<<< HEAD
+
 
 # table of hurricanes per year
 hurricanes_per_year <- recent_hurricanes %>%
@@ -45,8 +45,7 @@ hurricanes_per_basin <- recent_hurricanes %>%
   group_by(BASIN) %>%
   summarise(TOTAL_H = n_distinct(NAME, DAY))
 
-=======
->>>>>>> a22f559e9cd25af3504a9da11315b346e4d5b40e
+
 #Format Coordinates
 #dat<-as.character(recent_hurricanes$LAT)
 #new<-substr(dat,1,nchar(dat))
@@ -61,7 +60,7 @@ hurricanes_per_basin <- recent_hurricanes %>%
 #name<-as.character(recent_hurricanes$NAME)
 #coord<-cbind(year, name, coord, lat)
 
-<<<<<<< HEAD
+
 ```
 =======
 # Hurricane Frequency
@@ -243,7 +242,7 @@ $$(\theta^2)^{-1} \sim Gamma(0.001, 0.001)$$
 
 
 Build the model--normal-normal
-```{r}
+```{r fig.height=8}
 
 # specify the model
 hurricane_freq_model1 <- "model{
@@ -274,7 +273,7 @@ hurricane_freq_sample1 <- data.frame(step = 1:50000, hurricane_freq_sim1[[1]])
 head(hurricane_freq_sample1)
 
 #summary(hurricane_freq_sim1)
-#plot(hurricane_freq_sim1)
+plot(hurricane_freq_sim1)
 #summary(hurricane_freq_sample1)
 #plot(hurricane_freq_sample1)
 
@@ -340,7 +339,7 @@ location_max <- hurricane_data %>%
 
 
 Build the model--Poisson regression (frequency of hurricanes)
-```{r}
+```{r fig.height=8}
 library(rjags)
 
 head(location_max)
@@ -373,6 +372,7 @@ freq_sim <- coda.samples(freq_jags, variable.names = c("beta0", "beta1", "beta2"
 # store the samples in a data frame:
 freq_sample <- data.frame(step = 1:50000, freq_sim[[1]])
 head(freq_sample)
+plot(freq_sim)
 ```
 
 Looking at convergence
@@ -426,10 +426,7 @@ Can we model  the trend of average durations of hurricanes over the years?
 Create new dataset on average durations per year
 <<<<<<< HEAD
 ```{r echo=FALSE}
-=======
 
-```{r}
->>>>>>> a22f559e9cd25af3504a9da11315b346e4d5b40e
 # Hurricane data only looking at Date and name
 hurricane_time<-subset(recent_hurricanes, select = c(NAME,YEAR,MONTH,DAY))
 
@@ -483,7 +480,7 @@ foo<-group_by(foo, YEAR)%>%
 
 
 Build the model
-```{r}
+```{r echo=FALSE}
 #specify the model
 duration_model <- "model{
     #Data
@@ -501,7 +498,7 @@ duration_model <- "model{
     tau ~ dgamma(0.001, 0.001)
 }"
 
-<<<<<<< HEAD
+
 
 
 duration_jags <- jags.model(textConnection(duration_model), data=list(y=foo_train$Average_Duration, x1=hurricanes_per_year_clean$temp, x2=hurricanes_per_year_clean$avg_CO2, x3=hurricanes_per_year_clean$avg_NAO), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
