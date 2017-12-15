@@ -200,7 +200,7 @@ $$\beta_{2} \sim N(0, 1e6)$$
 
 
 Simulating the model using rjags:
-```{r}
+```{r echo=FALSE}
 head(hurricanes_per_year_clean)
 
 hur_mod <- " model {
@@ -227,10 +227,10 @@ freq_jags <- jags.model(textConnection(hur_mod),data=list(TOTAL_H = hurricanes_p
 
 # simulate a sample from the posterior
 # note that we specify both mu and tau variables
-freq_sim <- coda.samples(freq_jags, variable.names = c("beta0", "beta1", "beta2"), n.iter=500000)
+freq_sim <- coda.samples(freq_jags, variable.names = c("beta0", "beta1", "beta2"), n.iter=5000)
 
 # store the samples in a data frame:
-freq_sample <- data.frame(step = 1:500000, freq_sim[[1]])
+freq_sample <- data.frame(step = 1:5000, freq_sim[[1]])
 head(freq_sample, 10)
 
 
@@ -240,7 +240,7 @@ freq_sample_small <- Nth.delete(freq_sample, 2)
 ```
 
 Looking at convergence
-```{r}
+```{r echo=FALSE}
 library(MacBayes)
 running_mean_plot(x=freq_sample_small$beta0, se=TRUE)
 running_mean_plot(x=freq_sample_small$beta1, se=TRUE)
@@ -248,7 +248,7 @@ running_mean_plot(x=freq_sample_small$beta2, se=TRUE)
 ```
 
 Based on the running mean plots, parameters look like they have converged.  Parameter mean values and 95% credible intervals are as follows:
-```{r}
+```{r echo=FALSE}
 quantile(freq_sample$beta0, c(0.05, 0.975)) 
 quantile(freq_sample$beta1, c(0.05, 0.975))
 quantile(freq_sample$beta2, c(0.05, 0.975))
@@ -273,7 +273,7 @@ From these results, we conclude that average annual CO2 concentration and NAO in
 
 Divide northern hemisphere into four zones.  Get temperature from 1950 for each of these zones.
 ```{r}
-temp_data <- read_csv("~/Desktop/ZonAnn.csv")
+temp_data <- read_csv("ZonAnn.csv")
 temp_data<-na.omit(temp_data) %>%
   filter(1950 <= Year) %>%
   filter(Year <= 2008)
@@ -306,7 +306,7 @@ head(hurricanes_per_zone)
 
 
 Poisson regression--just with temperature
-```{r}
+```{r echo=FALSE}
 hur_mod2 <- " model {
   for (i in 1:length(total)) {
       total[i] ~ dpois(lam[i])
@@ -330,52 +330,74 @@ head(freq_sample2, 10)
 ```
 
 Look at the estimated parameters--have they coverged?
-```{r}
+```{r echo=FALSE}
 running_mean_plot(x=freq_sample2$beta0, se=TRUE)
 running_mean_plot(x=freq_sample2$beta1, se=TRUE)
 ```
 
 Based on the running mean plots, parameters look like they have converged.  Parameter mean values and 95% credible intervals are as follows:
-```{r}
-quantile(freq_sample2$beta0, c(0.05, 0.975)) 
-quantile(freq_sample2$beta1, c(0.05, 0.975))
 
-mean(freq_sample2$beta0)
-mean(freq_sample2$beta1)
+
+
+```{r}
+# Hurricane data only looking at Date and name
+hurricane_time<-subset(recent_hurricanes, select = c(NAME,YEAR,MONTH,DAY))
+
+#Group data by year and name and subtracting starting time from end time for each hurricane (duration)
+foo <- hurricane_time %>%
+  group_by(YEAR, NAME) %>%
+  mutate(date = as.Date(paste(YEAR, MONTH, DAY, sep='-')), "%Y-%m-%d") %>%
+  summarise(duration = max(date) - min(date))
+
+#removed outlier
+foo<-foo[!(foo$YEAR==1954 & foo$NAME=="ALICE"),]
+
+# Averaging duration per year
+foo<-group_by(foo, YEAR)%>%
+  summarise(mean(duration))
+# Name second column of data as Average_Duration
+colnames(foo)[2] <- "duration"
+colnames(foo)[1]<-"year"
+#create durations with temperature data, CO2 data, NAOI data and frequency data
+durations <- merge(foo, hurricanes_per_zone, by = c("year"), all.x = TRUE, all.y = TRUE)
 ```
 
-beta1, x1 is temp; beta2, x2 is zone
 
+```{r fig.height=6}
+library(rjags)
 
-Poisson regression--with temperature and location zone
-```{r}
-hur_mod3 <- " model {
-  for (i in 1:length(total)) {
-      total[i] ~ dpois(lam[i])
-      log(lam[i]) = beta0 + beta1*X1[i] + beta2[X2[i]]
+#specify the model
+duration_model <- "model{
+    #Data
+    for(i in 1:length(y)) {
+        y[i] ~ dnorm(beta0 + beta1*X1[i] + beta2[X2[i]],tau)
+    }
+
+    #Priors
+    beta0 ~ dnorm(0.0, 1.0/1e4)
+    beta1 ~ dnorm(0.0, 1.0/1e4)
+    beta2[1] <- 0
+    for (i in 2:4) {
+      beta2[i] ~ dnorm(0.0, 1.0/1e4)
   }
+    tau ~ dgamma(.001, .001)
+}"
 
-  beta0 ~ dnorm(0.0, 1.0/1e4)
-  beta1 ~ dnorm(0.0, 1.0/1e4)
-  beta2[1] <- 0
-  for (i in 2:4) {
-    beta2 ~ dnorm(0.0, 1.0/1e4)
-  }
-} "
 
-# set up an algorithm to simulate the posterior by combining the model and data (x)
-# set the random number seed
-freq_jags3 <- jags.model(textConnection(hur_mod3),data=list(total = hurricanes_per_zone$total, X1 = hurricanes_per_zone$temp, X2 = hurricanes_per_zone$zone), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=2000))
 
-# simulate a sample from the posterior
-freq_sim3 <- coda.samples(freq_jags3, variable.names = c("beta0", "beta1", "beta2"), n.iter=1000)
+duration_jags <- jags.model(textConnection(duration_model), data=list(y = durations$duration, X1 = durations$temp, X2 = durations$zone), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
 
-# store the samples in a data frame:
-freq_sample3 <- data.frame(step = 1:1000, freq_sim3[[1]])
-head(freq_sample3, 10)
+
+
+duration_sim <- coda.samples(duration_jags, variable.names=c("beta0","beta1", "beta2","tau"), n.iter=10000)
+
+
+   
+duration_samples <- data.frame(step=1:10000, duration_sim[[1]])
+head(duration_samples)
+plot(duration_sim)
 ```
 
-Check for convergence
 ```{r}
 running_mean_plot(x=freq_sample3$beta0, se=TRUE)
 running_mean_plot(x=freq_sample3$beta1, se=TRUE)
@@ -386,8 +408,6 @@ running_mean_plot(x=freq_sample3$beta2.4., se=TRUE)
 ```
 
 
-
-Look at parameter values
 ```{r}
 quantile(freq_sample3$beta0, c(0.05, 0.975)) 
 quantile(freq_sample3$beta1, c(0.05, 0.975))
@@ -401,170 +421,3 @@ mean(freq_sample3$beta2.2.)
 mean(freq_sample3$beta2.3.)
 mean(freq_sample3$beta2.4.)
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-```{r}
-
-library(maps)
-library(mapdata)
-library(maptools)
-library(readr)
-library(dplyr)
-library(ggplot2)
-library(rgdal)
-library(sp)
-library(dplyr)
-hurricane_data <- read.csv("Historical_Tropical_Storm_Tracks.csv")
-#area <- readShapePoly("ne_10m_coastline.shp")
-
-hurricane_data<-na.omit(hurricane_data)
-hurricane_data<-subset(hurricane_data, select=-c(FID, BTID, AD_TIME))
-
-# select only hurricanes in 1950 and after
-recent_hurricanes <- hurricane_data[hurricane_data$YEAR >= 1950, ] 
-recent_hurricanes$Yearmonthday<-as.numeric(do.call(paste, c(recent_hurricanes[c("YEAR", "MONTH","DAY")], sep = ""))) #Creating a Yearmonth columns which will be useful for identifying the landfall date
-
-
-global<-map_data("world")
-
-location_max <- hurricane_data %>%
-  filter(YEAR > 1949) %>%
-  group_by(YEAR, NAME) 
-global[1:2]<-round(global[1:2],1)
-landfall <-merge(location_max, global, by.x = c("LONG","LAT"), by.y = c("long","lat"))
-landfall<-subset(landfall, select =-c(group,order,region,subregion))
-head(landfall)
-library(rworldmap)
-newmap <- getMap(resolution = "low")
-plot(newmap)
-points(landfall$LONG, landfall$LAT, col = "red", cex = .6)
-```
-```{r}
-require(maps)
-require(sp)
-library(rgeos)
-library(gstat)
-dat<-as.character(recent_hurricanes$LAT)
-new<-substr(dat,1,nchar(dat))
-lat<-as.numeric(new)
-dat<-as.character(recent_hurricanes$LONG)
-new<-substr(dat,1,nchar(dat))
-long<-as.numeric(new)
-long<- -abs(long)
-coord<-as.data.frame(long)
-coord<-cbind(coord, lat)
-
-global<-map("world", fill=TRUE)
-IDs <- sapply(strsplit(global$names, ":"), function(x) x[1])
-global <- map2SpatialPolygons(global, IDs=IDs, proj4string=CRS("+proj=longlat +datum=WGS84"))
-
-# First I need to dissolve and create a unique polygon, then I'll create the coastal boundary
-crs  <- CRS("+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-110 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m") 
-global.p<-spTransform(global, crs)
-global.p<-gBuffer(global.p, byid=TRUE, width=1) 
-global.u<- gUnaryUnion(global.p)
-global.l<-as(global,'SpatialLines') 
-crs.new<-CRS(proj4string(global))
-global.l<-spTransform(global.l, crs.new)
-```
-
-```{r}
-recent_hurricanes <- recent_hurricanes %>%
-  mutate(ID = group_indices_(recent_hurricanes, .dots=c("YEAR", "NAME"))) 
-head(recent_hurricanes)
-
-hu.ID<-unique(recent_hurricanes$ID) # Identifying the numbers of hurricanes on the dataset
-m.data<-NULL # Initiate a NULL matrix where to store the results recursively 
-
-options(warn=-1) # Removing the warning messages coming from the krige function
-for (i in 1:length(hu.ID)) {
-  
-  id.storm<-hu.ID[i]
-  storm.i<-recent_hurricanes[recent_hurricanes$ID==id.storm,]
-    
-  # Transform the Hurricane track into a line
-  storm.c<- data.frame(x=storm.i$LONG,y=storm.i$LAT)
-  coordinates(storm.c)<- ~x+y 
-  proj4string(storm.c) <- CRS(proj4string(global))
-  storm.l <- SpatialLines(list(Lines(list(Line(coordinates(storm.c))),"X")))
-  proj4string(storm.l) <- CRS(proj4string(global)) ## attributing the coordinate system of the map (WGS84) to the ike track
-    
-  # Finding the landfall point of the hurricane (intersection between the track and the US coastline)
-  cross<-gIntersection(storm.l,global.l)
-
-  
-  # If there is intersection, identify the wind speed, date (year and month) and State at landfall
-  
-  if (length(cross)>0)
-  {
-    storm.int<-data.frame(x=storm.i$LONG,y=storm.i$LAT,tim=storm.i$Yearmonthday)
-    colnames(storm.int)<-c("Long","Lat","Yearmonth")
-  
-    # Convert the event track info into a spatial data frame
-    coordinates(storm.int) <- ~Long+Lat
-    proj4string(storm.int) <- CRS(proj4string(global))
-    
-    # Compute the interpolated values of the wind speed at landfall
-    #landfall.k <- krige(Max_Speed~1, storm.int, cross, debug.level = 0)
-    #landfall.w<-landfall.k$var1.pred
-  
-    # Compute the interpolated values of the Year month at landfall
-    landfall.kt <- krige(Yearmonth~1, storm.int, cross, debug.level = 0)
-    landfall.t<-landfall.kt$var1.pred
-    
-    landfall.p<-cbind(cross@coords,landfall.t)
-    colnames(landfall.p)[3]<- ("Time")
-    
-    # Multiple landfalls can occure (Hurricane eye can intersect the coastline several times)
-    # I will consider only one landfall per storm and pick the landfall point with the maximum wind
-    lfmax.p<-landfall.p[which.max(landfall.p[,3]),]
-    lfmax.p<-t(as.matrix(lfmax.p))
-    lfmax.p[,c("Time")]<-round(lfmax.p[,c("Time")]) ## rounding the time in case the landfall point happens between 2 months
-    
-    # Identifying the state where landfall occurs
-    lfmax.p1<-data.frame(x=lfmax.p[1], y=lfmax.p[2], wmax=lfmax.p[3])
-    coordinates(lfmax.p1)<-~x+y
-    proj4string(lfmax.p1) <- CRS(proj4string(global))
-    crs  <- CRS("+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-110 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m") 
-    lfmax.p1_pla<-spTransform(lfmax.p1, crs)
-    usa_pla<-spTransform(global, crs)
-    dist<-gDistance(lfmax.p1_pla,usa_pla, byid=TRUE)
-    state.name<-rownames(dist)[which.min(dist)]
-     
-    # storm info to append
-    st.info<-storm.i[1,c("ID","Name")]
-    st.info<-cbind(st.info,state.name,lfmax.p)
-    st.info$Year<-substr(st.info$Time,1,4)
-    st.info$Month<-substr(st.info$Time,5,6)
-    st.info<-st.info[,-which(colnames(st.info)=="Time")]
-  
-    # Append storm info
-    m.data<-rbind(m.data,st.info)
-    }
-} 
-options(warn=0)
-```
-
-
-
-
-
-
-
-
