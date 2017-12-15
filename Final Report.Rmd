@@ -153,7 +153,7 @@ For all models we decided to run Markov chains to
 
 ### Packages used
 
-```{r echo=FALSE}
+```{r eval=FALSE}
 library(readr)
 library(dplyr)
 library(tidyr)
@@ -171,7 +171,7 @@ library(MacBayes)
 
 ### Data Cleaning
 
-```{r echo=FALSE}
+```{r eval=FALSE}
 # Loading the Data
 hurricane_data <- read_csv("Historical_Tropical_Storm_Tracks.csv")
 hurricane_data<-na.omit(hurricane_data)
@@ -180,19 +180,6 @@ hurricane_data<-subset(hurricane_data, select=-c(BTID, AD_TIME))
 # Recent Hurricanes--select only hurricanes in 1950 and after
 recent_hurricanes <- hurricane_data[hurricane_data$YEAR >= 1950, ] 
 recent_hurricanes <- recent_hurricanes[!(recent_hurricanes$NAME=="NOTNAMED"),]
-#Format Coordinates
-dat<-as.character(recent_hurricanes$LAT)
-new<-substr(dat,1,nchar(dat))
-lat<-as.numeric(new)
-dat<-as.character(recent_hurricanes$LONG)
-new<-substr(dat,1,nchar(dat))
-long<-as.numeric(new)
-long<- -abs(long)
-coord<-as.data.frame(long)
-#Add year and name
-year<-as.character(recent_hurricanes$YEAR)
-name<-as.character(recent_hurricanes$NAME)
-hurricane_locations<-cbind(year, name, coord, lat)
 
 # Hurricane Frequency
 # table of hurricanes per year
@@ -280,9 +267,8 @@ head(hurricanes_per_year_clean)
 
 #### Creating dataset for frequency, temperature, and zones
 
-```{r}
+```{r eval=FALSE}
 # Adding zones to the temperature data and limiting time interval to between 1950-2008.
-
 temp_data <- read_csv("ZonAnn.csv")
 temp_data<-na.omit(temp_data) %>%  filter(1950 <= Year) %>%
   filter(Year <= 2008)
@@ -290,18 +276,105 @@ my_temp <- subset(temp_data, select = c("Year", "EQU-24N", "24N-44N", "44N-64N",
 colnames(my_temp) <- c("Year", "EQUtoN24", "N24to44", "N44to64", "N64to90")
 my_temp <- melt(my_temp, id=c("Year"))
 colnames(my_temp) <- c("year", "zone", "temp")
+
+# Divide hurricane dataset by zones
+hurricanes_zones <- hurricane_locations %>% 
+  mutate(zone=cut(lat, breaks=c(0, 24, 44, 64, 90), labels=c( "EQUtoN24", "N24to44", "N44to64","N64to90"))) %>%
+  group_by(year, zone)  %>%
+  summarise(total = n())
+
+# Combine the  hurricane and temperature dataset together
+hurricanes_per_zone <- merge(my_temp, hurricanes_zones, by = c("year", "zone"), all.x = TRUE, all.y = TRUE)
+hurricanes_per_zone[is.na(hurricanes_per_zone)] <- 0
 ```
-
-
 
 #### Using CO2 and NAOI
 
 
-#### Using Teperature and Zone cateogries
 
+#### Using Teperature and Zone cateogories
 
+```{r eval=FALSE}
+hur_mod3 <- " model {
+  for (i in 1:length(total)) {
+      total[i] ~ dpois(lam[i])
+      log(lam[i]) = beta0 + beta1*X1[i] + beta2[X2[i]]
+  }
+
+  beta0 ~ dnorm(0.0, 1.0/1e4)
+  beta1 ~ dnorm(0.0, 1.0/1e4)
+  beta2[1] <- 0
+  for (i in 2:4) {
+    beta2[i] ~ dnorm(0.0, 1.0/1e4)
+  }
+} "
+
+# set up an algorithm to simulate the posterior by combining the model and data (x)
+# set the random number seed
+freq_jags3 <- jags.model(textConnection(hur_mod3),data=list(total = hurricanes_per_zone$total, X1 = hurricanes_per_zone$temp, X2 = hurricanes_per_zone$zone), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=2000))
+
+# simulate a sample from the posterior
+freq_sim3 <- coda.samples(freq_jags3, variable.names = c("beta1", "beta2"), n.iter=1000)
+
+# store the samples in a data frame:
+freq_sample3 <- data.frame(step = 1:1000, freq_sim3[[1]])
+head(freq_sample3, 10)
+plot(freq_sim3)
+```
 
 ### Markov Chain for Average Duration
 
 #### Creating a new dataset with duration, zones, and temperature
 
+```{r eval=FALSE}
+# Hurricane data only looking at Date and name
+hurricane_time<-subset(recent_hurricanes, select = c(NAME,YEAR,MONTH,DAY))
+
+#Group data by year and name and subtracting starting time from end time for each hurricane (duration)
+foo <- hurricane_time %>%
+  group_by(YEAR, NAME) %>%
+  mutate(date = as.Date(paste(YEAR, MONTH, DAY, sep='-')), "%Y-%m-%d") %>%
+  summarise(duration = max(date) - min(date))
+
+#removed outlier
+foo<-foo[!(foo$YEAR==1954 & foo$NAME=="ALICE"),]
+
+# Averaging duration per year
+foo<-group_by(foo, YEAR)%>%
+  summarise(mean(duration))
+# Name second column of data as Average_Duration
+colnames(foo)[2] <- "duration"
+colnames(foo)[1]<-"year"
+#create durations with temperature data, CO2 data, NAOI data and frequency data
+durations <- merge(foo, hurricanes_per_zone, by = c("year"), all.x = TRUE, all.y = TRUE)
+
+```
+
+#### Running the model
+
+```{r eval=FALSE}
+library(rjags)
+
+#specify the model
+duration_model <- "model{
+    #Data
+    for(i in 1:length(y)) {
+        y[i] ~ dnorm(beta0 + beta1*X1[i] + beta2[X2[i]],tau)
+    }
+
+    #Priors
+    beta0 ~ dnorm(0.0, 1.0/1e4)
+    beta1 ~ dnorm(0.0, 1.0/1e4)
+    beta2[1] <- 0
+    for (i in 2:4) {
+      beta2[i] ~ dnorm(0.0, 1.0/1e4)
+  }
+    tau ~ dgamma(.001, .001)
+}"
+
+duration_jags <- jags.model(textConnection(duration_model), data=list(y = durations$duration, X1 = durations$temp, X2 = durations$zone), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+
+duration_sim <- coda.samples(duration_jags, variable.names=c("beta0","beta1", "beta2","tau"), n.iter=10000)
+
+duration_samples <- data.frame(duration_sim[[1]])
+```
