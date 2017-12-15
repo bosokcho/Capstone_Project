@@ -2,7 +2,124 @@
 #### By: Madeline Abbott, Aidan Teppema, Daisy Cho
 #### December 17, 2017
 
+```{r include=FALSE}
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(zoo)
+library(lubridate)
+library(ggmap)
+library(reshape2)
+library(MASS)
+library(viridis)
+#library(shiny)
+library(rjags)
+library(MacBayes)
+```
 
+Loading the data...
+```{r include=FALSE}
+# Loading the Data
+hurricane_data <- read_csv("Historical_Tropical_Storm_Tracks.csv")
+hurricane_data<-na.omit(hurricane_data)
+hurricane_data<-subset(hurricane_data, select=-c(BTID, AD_TIME))
+
+# Recent Hurricanes--select only hurricanes in 1950 and after
+recent_hurricanes <- hurricane_data[hurricane_data$YEAR >= 1950, ] 
+recent_hurricanes <- recent_hurricanes[!(recent_hurricanes$NAME=="NOTNAMED"),]
+#Format Coordinates
+dat<-as.character(recent_hurricanes$LAT)
+new<-substr(dat,1,nchar(dat))
+lat<-as.numeric(new)
+dat<-as.character(recent_hurricanes$LONG)
+new<-substr(dat,1,nchar(dat))
+long<-as.numeric(new)
+long<- -abs(long)
+coord<-as.data.frame(long)
+#Add year and name
+year<-as.character(recent_hurricanes$YEAR)
+name<-as.character(recent_hurricanes$NAME)
+hurricane_locations<-cbind(year, name, coord, lat)
+
+# Hurricane Frequency
+# table of hurricanes per year
+hurricanes_per_year <- recent_hurricanes %>%
+  group_by(YEAR) %>%
+  summarise(TOTAL_H = n_distinct(NAME))
+hurricanes_per_basin <- recent_hurricanes %>%
+  group_by(BASIN) %>%
+  summarise(TOTAL_H = n_distinct(NAME, DAY))
+
+# Temperature Data
+temp_data <- read.csv("ZonAnn.csv")
+temp_data[!complete.cases(temp_data),]
+temp_data<-na.omit(temp_data)
+temp_data<-temp_data[,-(5:15),drop=FALSE]
+temp_recent <- temp_data %>%
+  filter(Year > 1949)
+# select only northern hemisphere temp data
+tempN <- subset(temp_recent, select = c(Year, NHem))
+# rename the columns
+colnames(tempN) <- c("YEAR", "temp")
+# join temperature to hurricanes per year table
+hurricanes_per_year2 <- merge(x = hurricanes_per_year, y = tempN, by = "YEAR", all.x = TRUE)
+
+# CO2 Data
+CO2 <- read_csv("CO2.csv")
+# Alter CO2 to remove unnecessary variable trend
+CO2 <- subset(CO2, select = -trend)
+# get average by year
+CO2_yr <- CO2 %>%
+  group_by(year) %>%
+  summarise(avg_CO2 = mean(average))
+# rename columns
+colnames(CO2_yr) <- c("YEAR", "avg_CO2")
+# join with hurricane per year table
+hurricanes_per_year3 <- merge(x = hurricanes_per_year2, y = CO2_yr, by = "YEAR", all.x = TRUE)
+# FIX THIS (bc only 1980 onward available)
+
+# NAO Index Data
+NAO_index1 <- read_csv("NAO_index_monthly.csv", 
+    col_types = cols(Apr = col_number(), 
+        Aug = col_number(), Dec = col_number(), 
+        Feb = col_number(), Jan = col_number(), 
+        Jul = col_number(), Jun = col_number(), 
+        Mar = col_number(), May = col_number(), 
+        Nov = col_number(), Oct = col_number(), 
+        Sep = col_number()))
+NAO_index2 <- NAO_index1[, -c(14)]
+NAO_index3 <- NAO_index2 %>%
+  rename(year = X1) %>%
+  mutate(Jul = replace(Jul, Jul < -50| Jul > 50, "")) %>%
+  mutate(Aug = replace(Aug, Aug < -50| Aug > 50, "")) %>%
+  mutate(Sep = replace(Sep, Sep < -50| Sep > 50, "")) %>%
+  mutate(Oct = replace(Oct, Oct < -50| Oct > 50, "")) %>%
+  mutate(Nov = replace(Nov, Nov < -50| Nov > 50, "")) %>%
+  mutate(Dec = replace(Dec, Dec < -50| Dec > 50, ""))
+NAO_index <- NAO_index3[-nrow(NAO_index3),] 
+# remove 2017 (data for year is incomplete)
+NAO_index <- head(NAO_index, -1) 
+# reshape table
+NAO_index <- melt(NAO_index, id=c("year"))
+colnames(NAO_index)[2] <- "month"
+colnames(NAO_index)[3] <- "index"
+NAO_index$year <- as.factor(NAO_index$year)
+NAO_index$index <- as.numeric(NAO_index$index)
+# group by year
+NAO_yr <- NAO_index %>%
+  group_by(year) %>%
+  summarise(avg_NAO = mean(index))
+# rename columns
+colnames(NAO_yr) <- c("YEAR", "avg_NAO")
+# join with hurricane data
+hurricanes_per_year4 <- merge(x = hurricanes_per_year3, y = NAO_yr, by = "YEAR", all.x = TRUE)
+
+# Remove all rows with missing data
+hurricanes_per_year_clean<-na.omit(hurricanes_per_year4)
+
+head(hurricanes_per_year_clean)
+```
 In the past summer, there were two major and devastating category 4 hurricanes in the US. Peoplel in Central America, Texas, Louisiana and other states lost their shelter and loved ones from Hurricane. Hurricane Irma soon after attacked as a ruining the coast of Florida. We wanted to see if this was indicative of the future and see if 
 
 ## The Datasets
@@ -31,3 +148,160 @@ For all models we decided to run Markov chains to
 ## Conclusion
 
 ## References
+
+## Appendix
+
+### Packages used
+
+```{r echo=FALSE}
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(zoo)
+library(lubridate)
+library(ggmap)
+library(reshape2)
+library(MASS)
+library(viridis)
+#library(shiny)
+library(rjags)
+library(MacBayes)
+```
+
+### Data Cleaning
+
+```{r echo=FALSE}
+# Loading the Data
+hurricane_data <- read_csv("Historical_Tropical_Storm_Tracks.csv")
+hurricane_data<-na.omit(hurricane_data)
+hurricane_data<-subset(hurricane_data, select=-c(BTID, AD_TIME))
+
+# Recent Hurricanes--select only hurricanes in 1950 and after
+recent_hurricanes <- hurricane_data[hurricane_data$YEAR >= 1950, ] 
+recent_hurricanes <- recent_hurricanes[!(recent_hurricanes$NAME=="NOTNAMED"),]
+#Format Coordinates
+dat<-as.character(recent_hurricanes$LAT)
+new<-substr(dat,1,nchar(dat))
+lat<-as.numeric(new)
+dat<-as.character(recent_hurricanes$LONG)
+new<-substr(dat,1,nchar(dat))
+long<-as.numeric(new)
+long<- -abs(long)
+coord<-as.data.frame(long)
+#Add year and name
+year<-as.character(recent_hurricanes$YEAR)
+name<-as.character(recent_hurricanes$NAME)
+hurricane_locations<-cbind(year, name, coord, lat)
+
+# Hurricane Frequency
+# table of hurricanes per year
+hurricanes_per_year <- recent_hurricanes %>%
+  group_by(YEAR) %>%
+  summarise(TOTAL_H = n_distinct(NAME))
+hurricanes_per_basin <- recent_hurricanes %>%
+  group_by(BASIN) %>%
+  summarise(TOTAL_H = n_distinct(NAME, DAY))
+
+# Temperature Data
+temp_data <- read.csv("ZonAnn.csv")
+temp_data[!complete.cases(temp_data),]
+temp_data<-na.omit(temp_data)
+temp_data<-temp_data[,-(5:15),drop=FALSE]
+temp_recent <- temp_data %>%
+  filter(Year > 1949)
+# select only northern hemisphere temp data
+tempN <- subset(temp_recent, select = c(Year, NHem))
+# rename the columns
+colnames(tempN) <- c("YEAR", "temp")
+# join temperature to hurricanes per year table
+hurricanes_per_year2 <- merge(x = hurricanes_per_year, y = tempN, by = "YEAR", all.x = TRUE)
+
+# CO2 Data
+CO2 <- read_csv("CO2.csv")
+# Alter CO2 to remove unnecessary variable trend
+CO2 <- subset(CO2, select = -trend)
+# get average by year
+CO2_yr <- CO2 %>%
+  group_by(year) %>%
+  summarise(avg_CO2 = mean(average))
+# rename columns
+colnames(CO2_yr) <- c("YEAR", "avg_CO2")
+# join with hurricane per year table
+hurricanes_per_year3 <- merge(x = hurricanes_per_year2, y = CO2_yr, by = "YEAR", all.x = TRUE)
+# FIX THIS (bc only 1980 onward available)
+
+# NAO Index Data
+NAO_index1 <- read_csv("NAO_index_monthly.csv", 
+    col_types = cols(Apr = col_number(), 
+        Aug = col_number(), Dec = col_number(), 
+        Feb = col_number(), Jan = col_number(), 
+        Jul = col_number(), Jun = col_number(), 
+        Mar = col_number(), May = col_number(), 
+        Nov = col_number(), Oct = col_number(), 
+        Sep = col_number()))
+NAO_index2 <- NAO_index1[, -c(14)]
+NAO_index3 <- NAO_index2 %>%
+  rename(year = X1) %>%
+  mutate(Jul = replace(Jul, Jul < -50| Jul > 50, "")) %>%
+  mutate(Aug = replace(Aug, Aug < -50| Aug > 50, "")) %>%
+  mutate(Sep = replace(Sep, Sep < -50| Sep > 50, "")) %>%
+  mutate(Oct = replace(Oct, Oct < -50| Oct > 50, "")) %>%
+  mutate(Nov = replace(Nov, Nov < -50| Nov > 50, "")) %>%
+  mutate(Dec = replace(Dec, Dec < -50| Dec > 50, ""))
+NAO_index <- NAO_index3[-nrow(NAO_index3),] 
+# remove 2017 (data for year is incomplete)
+NAO_index <- head(NAO_index, -1) 
+# reshape table
+NAO_index <- melt(NAO_index, id=c("year"))
+colnames(NAO_index)[2] <- "month"
+colnames(NAO_index)[3] <- "index"
+NAO_index$year <- as.factor(NAO_index$year)
+NAO_index$index <- as.numeric(NAO_index$index)
+# group by year
+NAO_yr <- NAO_index %>%
+  group_by(year) %>%
+  summarise(avg_NAO = mean(index))
+# rename columns
+colnames(NAO_yr) <- c("YEAR", "avg_NAO")
+# join with hurricane data
+hurricanes_per_year4 <- merge(x = hurricanes_per_year3, y = NAO_yr, by = "YEAR", all.x = TRUE)
+
+# Remove all rows with missing data
+hurricanes_per_year_clean<-na.omit(hurricanes_per_year4)
+
+head(hurricanes_per_year_clean)
+```
+
+### Markov Chain for Windspeed
+
+
+### Markov Chains for Frequency
+
+#### Creating dataset for frequency, temperature, and zones
+
+```{r}
+# Adding zones to the temperature data and limiting time interval to between 1950-2008.
+
+temp_data <- read_csv("ZonAnn.csv")
+temp_data<-na.omit(temp_data) %>%  filter(1950 <= Year) %>%
+  filter(Year <= 2008)
+my_temp <- subset(temp_data, select = c("Year", "EQU-24N", "24N-44N", "44N-64N", "64N-90N"))
+colnames(my_temp) <- c("Year", "EQUtoN24", "N24to44", "N44to64", "N64to90")
+my_temp <- melt(my_temp, id=c("Year"))
+colnames(my_temp) <- c("year", "zone", "temp")
+```
+
+
+
+#### Using CO2 and NAOI
+
+
+#### Using Teperature and Zone cateogries
+
+
+
+### Markov Chain for Average Duration
+
+#### Creating a new dataset with duration, zones, and temperature
+
