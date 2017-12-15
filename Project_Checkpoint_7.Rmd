@@ -306,7 +306,7 @@ head(hurricanes_per_zone)
 
 
 Poisson regression--just with temperature
-```{r echo=FALSE}
+```{r}
 hur_mod2 <- " model {
   for (i in 1:length(total)) {
       total[i] ~ dpois(lam[i])
@@ -322,26 +322,94 @@ hur_mod2 <- " model {
 freq_jags2 <- jags.model(textConnection(hur_mod2),data=list(total = hurricanes_per_zone$total, X1 = hurricanes_per_zone$temp), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=2000))
 
 # simulate a sample from the posterior
-freq_sim2 <- coda.samples(freq_jags2, variable.names = c("beta0", "beta1"), n.iter=5000)
+freq_sim2 <- coda.samples(freq_jags2, variable.names = c("beta0", "beta1"), n.iter=500000)
 
 # store the samples in a data frame:
-freq_sample2 <- data.frame(step = 1:5000, freq_sim2[[1]])
+freq_sample2 <- data.frame(step = 1:500000, freq_sim2[[1]])
 head(freq_sample2, 10)
 ```
 
 Look at the estimated parameters--have they coverged?
-```{r echo=FALSE}
+```{r}
 running_mean_plot(x=freq_sample2$beta0, se=TRUE)
 running_mean_plot(x=freq_sample2$beta1, se=TRUE)
 ```
 
 Based on the running mean plots, parameters look like they have converged.  Parameter mean values and 95% credible intervals are as follows:
+```{r}
+quantile(freq_sample2$beta0, c(0.05, 0.975)) 
+quantile(freq_sample2$beta1, c(0.05, 0.975))
+
+mean(freq_sample2$beta0)
+mean(freq_sample2$beta1)
+```
+
+beta1, x1 is temp; beta2, x2 is zone
+
+
+Poisson regression--with temperature and location zone
+```{r fig.height=8}
+hur_mod3 <- " model {
+  for (i in 1:length(total)) {
+      total[i] ~ dpois(lam[i])
+      log(lam[i]) = beta0 + beta1*X1[i] + beta2[X2[i]]
+  }
+
+  beta0 ~ dnorm(0.0, 1.0/1e4)
+  beta1 ~ dnorm(0.0, 1.0/1e4)
+  beta2[1] <- 0
+  for (i in 2:4) {
+    beta2[i] ~ dnorm(0.0, 1.0/1e4)
+  }
+} "
+
+# set up an algorithm to simulate the posterior by combining the model and data (x)
+# set the random number seed
+freq_jags3 <- jags.model(textConnection(hur_mod3),data=list(total = hurricanes_per_zone$total, X1 = hurricanes_per_zone$temp, X2 = hurricanes_per_zone$zone), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=2000))
+
+# simulate a sample from the posterior
+freq_sim3 <- coda.samples(freq_jags3, variable.names = c("beta1", "beta2"), n.iter=1000)
+
+# store the samples in a data frame:
+freq_sample3 <- data.frame(step = 1:1000, freq_sim3[[1]])
+head(freq_sample3, 10)
+plot(freq_sim3)
+```
+
+Check for convergence
+```{r}
+running_mean_plot(x=freq_sample3$beta0, se=TRUE)
+running_mean_plot(x=freq_sample3$beta1, se=TRUE)
+
+running_mean_plot(x=freq_sample3$beta2.2., se=TRUE)
+running_mean_plot(x=freq_sample3$beta2.3., se=TRUE)
+running_mean_plot(x=freq_sample3$beta2.4., se=TRUE)
+```
+
+
+
+Look at parameter values
+```{r}
+quantile(freq_sample3$beta0, c(0.05, 0.975)) 
+quantile(freq_sample3$beta1, c(0.05, 0.975))
+quantile(freq_sample3$beta2.2., c(0.05, 0.975))
+quantile(freq_sample3$beta2.3., c(0.05, 0.975))
+quantile(freq_sample3$beta2.4., c(0.05, 0.975))
+
+mean(freq_sample3$beta0)
+mean(freq_sample3$beta1)
+mean(freq_sample3$beta2.2.)
+mean(freq_sample3$beta2.3.)
+mean(freq_sample3$beta2.4.)
+```
+
 
 
 
 ```{r}
+
 # Hurricane data only looking at Date and name
-hurricane_time<-subset(recent_hurricanes, select = c(NAME,YEAR,MONTH,DAY))
+hurricane_time<-subset(hurricanes_recent, select = c(NAME,YEAR,MONTH,DAY))
 
 #Group data by year and name and subtracting starting time from end time for each hurricane (duration)
 foo <- hurricane_time %>%
@@ -360,6 +428,7 @@ colnames(foo)[2] <- "duration"
 colnames(foo)[1]<-"year"
 #create durations with temperature data, CO2 data, NAOI data and frequency data
 durations <- merge(foo, hurricanes_per_zone, by = c("year"), all.x = TRUE, all.y = TRUE)
+
 ```
 
 
@@ -393,31 +462,32 @@ duration_sim <- coda.samples(duration_jags, variable.names=c("beta0","beta1", "b
 
 
    
-duration_samples <- data.frame(step=1:10000, duration_sim[[1]])
+duration_samples <- data.frame(duration_sim[[1]])
 head(duration_samples)
 plot(duration_sim)
 ```
 
 ```{r}
-running_mean_plot(x=freq_sample3$beta0, se=TRUE)
-running_mean_plot(x=freq_sample3$beta1, se=TRUE)
+running_mean_plot(x=duration_samples$beta0, se=TRUE)
+running_mean_plot(x=duration_samples$beta1, se=TRUE)
 
-running_mean_plot(x=freq_sample3$beta2.2., se=TRUE)
-running_mean_plot(x=freq_sample3$beta2.3., se=TRUE)
-running_mean_plot(x=freq_sample3$beta2.4., se=TRUE)
+running_mean_plot(x=duration_samples$beta2.2., se=TRUE)
+running_mean_plot(x=duration_samples$beta2.3., se=TRUE)
+running_mean_plot(x=duration_samples$beta2.4., se=TRUE)
+running_mean_plot(x=duration_samples$tau, se=TRUE)
 ```
 
 
 ```{r}
-quantile(freq_sample3$beta0, c(0.05, 0.975)) 
-quantile(freq_sample3$beta1, c(0.05, 0.975))
-quantile(freq_sample3$beta2.2., c(0.05, 0.975))
-quantile(freq_sample3$beta2.3., c(0.05, 0.975))
-quantile(freq_sample3$beta2.4., c(0.05, 0.975))
+quantile(duration_samples$beta0, c(0.05, 0.975)) 
+quantile(duration_samples$beta1, c(0.05, 0.975))
+quantile(duration_samples$beta2.2., c(0.05, 0.975))
+quantile(duration_samples$beta2.3., c(0.05, 0.975))
+quantile(duration_samples$beta2.4., c(0.05, 0.975))
 
-mean(freq_sample3$beta0)
-mean(freq_sample3$beta1)
-mean(freq_sample3$beta2.2.)
-mean(freq_sample3$beta2.3.)
-mean(freq_sample3$beta2.4.)
+mean(duration_samples$beta0)
+mean(duration_samples$beta1)
+mean(duration_samples$beta2.2.)
+mean(duration_samples$beta2.3.)
+mean(duration_samples$beta2.4.)
 ```
