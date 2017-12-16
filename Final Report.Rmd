@@ -118,9 +118,22 @@ hurricanes_per_year4 <- merge(x = hurricanes_per_year3, y = NAO_yr, by = "YEAR",
 # Remove all rows with missing data
 hurricanes_per_year_clean<-na.omit(hurricanes_per_year4)
 
+# Wind speed data
+# Create new data set with windspeed and year
+windspeed_yr <- hurricane_data %>%
+  group_by(YEAR) %>%
+  summarise(avg_windspeed = mean(WIND_KTS))
+
+# Merge this with the other data set
+hurricanes_per_year_clean <- merge(x = hurricanes_per_year_clean, y = windspeed_yr, by = "YEAR", all.x = TRUE)
+
+head(hurricanes_per_year_clean)
+
 head(hurricanes_per_year_clean)
 ```
-In the past summer, there were two major and devastating category 4 hurricanes in the US. Peoplel in Central America, Texas, Louisiana and other states lost their shelter and loved ones from Hurricane. Hurricane Irma soon after attacked as a ruining the coast of Florida. We wanted to see if this was indicative of the future and see if 
+In the past summer, there were two major and devastating category 4 hurricanes in the US. People in Central America, Texas, Louisiana and other states lost security and loved ones from the hurricanes. Hurricane Irma soon after attacked as a ruining the coast of Florida. 
+
+We wanted to see if this increased number and severity of hurricanes are indicative of a trend and if we could predict if this trend would continue into the future.
 
 ## The Datasets
 
@@ -134,18 +147,27 @@ NAOI is the fluctuations in the difference of atmospheric pressure at sea level 
 
 ## What is MCMC?
 
-For all models we decided to run Markov chains to 
+For all our models we ran Markov chains in order to simulate the posterior results after running our models in rjags.
 
 ## Creating Our Models
 
+### Hurricane Windspeed
+
+For our first model, we tried to model hurricane severity over time using the NAO index and average atmospheric CO2 levels (we removed average ocean temperature from our model because it was collinear with CO2). The variable we used to indicate hurricane severity was wind speed, since the highest windspeed of a hurricane is what is used to categorize it.
+
+We used a normal-normal model to attempt to model wind speed with CO2 and NAO over time. The normal-normal model is called that because both the prior and posterior distributions of the data are normally distributed. All of the priors for this model are vague because, prior to creating and running our models, we didn't know much about the impact of NAO or CO2 on hurricane wind speed.
+
 ### Hurricane Frequency
 
-### Hurricane Windspeed
+Our second and third models attempt to show a relationship between CO2, NAO, and the frequency of hurricanes over time. 
 
 ### Hurricane Duration
 
+Our final model attempted to model the duration of the hurricane w
 
 ## Conclusion
+
+
 
 ## References
 
@@ -257,6 +279,15 @@ hurricanes_per_year4 <- merge(x = hurricanes_per_year3, y = NAO_yr, by = "YEAR",
 # Remove all rows with missing data
 hurricanes_per_year_clean<-na.omit(hurricanes_per_year4)
 
+# Wind speed data
+# Create new data set with windspeed and year
+windspeed_yr <- hurricane_data %>%
+  group_by(YEAR) %>%
+  summarise(avg_windspeed = mean(WIND_KTS))
+
+# Merge this with the other data set
+hurricanes_per_year_clean <- merge(x = hurricanes_per_year_clean, y = windspeed_yr, by = "YEAR", all.x = TRUE)
+
 head(hurricanes_per_year_clean)
 ```
 
@@ -286,6 +317,14 @@ hurricanes_zones <- hurricane_locations %>%
 # Combine the  hurricane and temperature dataset together
 hurricanes_per_zone <- merge(my_temp, hurricanes_zones, by = c("year", "zone"), all.x = TRUE, all.y = TRUE)
 hurricanes_per_zone[is.na(hurricanes_per_zone)] <- 0
+```
+
+```{r}
+
+#head(hurricanes_per_zone)
+#hurricanes_per_zone$zone
+#EQUtoN24 N24to44  N44to64  N64to90
+
 ```
 
 #### Using CO2 and NAOI
