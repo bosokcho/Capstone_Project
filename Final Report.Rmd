@@ -154,6 +154,26 @@ Using the normal-normal model, we modeled hurricane wind speed using C02 concent
 
 ### Hurricane Frequency
 
+```{r include=FALSE}
+# Adding zones to the temperature data and limiting time interval to between 1950-2008.
+temp_data<-na.omit(temp_data) %>%  filter(1950 <= Year) %>%
+  filter(Year <= 2008)
+my_temp <- subset(temp_data, select = c("Year", "EQU-24N", "24N-44N", "44N-64N", "64N-90N"))
+colnames(my_temp) <- c("Year", "EQUtoN24", "N24to44", "N44to64", "N64to90")
+my_temp <- melt(my_temp, id=c("Year"))
+colnames(my_temp) <- c("year", "zone", "temp")
+
+# Divide hurricane dataset by zones
+hurricanes_zones <- hurricane_locations %>% 
+  mutate(zone=cut(lat, breaks=c(0, 24, 44, 64, 90), labels=c( "EQUtoN24", "N24to44", "N44to64","N64to90"))) %>%
+  group_by(year, zone)  %>%
+  summarise(total = n())
+
+# Combine the  hurricane and temperature dataset together
+hurricanes_per_zone <- merge(my_temp, hurricanes_zones, by = c("year", "zone"), all.x = TRUE, all.y = TRUE)
+hurricanes_per_zone[is.na(hurricanes_per_zone)] <- 0
+```
+
 ```{r echo=FALSE}
 # Total number of hurricanes per year
 hurricanes_per_year <- group_by(recent_hurricanes, YEAR) %>%
@@ -200,7 +220,8 @@ In order to model average duration of hurricanes, we decided to use normal-norma
 
 * 
 *
-*
+*Martyn Plummer (2016). rjags: Bayesian Graphical Models using MCMC. R package version 4-6.
+  https://CRAN.R-project.org/package=rjags
 
 ## Appendix
 
@@ -351,7 +372,6 @@ windSpeed_sample <- data.frame(step=1:500000, windSpeed_sim[[1]])
 
 ```{r eval=FALSE}
 # Adding zones to the temperature data and limiting time interval to between 1950-2008.
-temp_data <- read_csv("ZonAnn.csv")
 temp_data<-na.omit(temp_data) %>%  filter(1950 <= Year) %>%
   filter(Year <= 2008)
 my_temp <- subset(temp_data, select = c("Year", "EQU-24N", "24N-44N", "44N-64N", "64N-90N"))
