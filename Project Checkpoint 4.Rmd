@@ -93,7 +93,7 @@ ggmap(map_hurricanes) +
 hurricanes_per_year <- group_by(hurricanes_recent, YEAR) %>%
   summarize(length(unique(NAME)))
 colnames(hurricanes_per_year)[2] <- "TOTAL_HURRICANES"
-ggplot(hurricanes_per_year, aes(x = YEAR, y = TOTAL_HURRICANES)) + geom_point()
+ggplot(hurricanes_per_year, aes(x = YEAR, y = TOTAL_HURRICANES)) + geom_point(col = "deepskyblue4") + xlab("Year") + ylab("Total Number of Hurricanes")
 ```
 
 ```{r}
@@ -101,7 +101,7 @@ ggplot(hurricanes_per_year, aes(x = YEAR, y = TOTAL_HURRICANES)) + geom_point()
 hurricanes_categories <- group_by(hurricanes_recent, YEAR) %>%
   count(CAT)
 colnames(hurricanes_categories)[3] <- "TOTAL_HURRICANES"
-ggplot(hurricanes_categories, aes(x = YEAR, y = TOTAL_HURRICANES, color = CAT, fill = CAT)) + geom_bar(stat = "identity")
+ggplot(hurricanes_categories, aes(x = YEAR, y = TOTAL_HURRICANES, color = CAT, fill = CAT)) + geom_bar(stat = "identity") + xlab("year") + ylab("total hurricanes by category")
 ```
 
 ```{r fig.height = 2, fig.width = 8}
