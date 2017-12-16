@@ -165,10 +165,11 @@ ggplot(data = NAO_avgMonth, aes(x = Group.1, y = x)) + geom_point(color = "blue"
 ## What is a Markov Chain?
 
 
-For all our models we ran Markov chains in order to simulate the posterior results after running our models in rjags.
+For all our models we ran Markov chains in order to simulate the posterior results after running our models in rjags.A Markov Chain is a chain of approximated values where one value is predicted by the value just prior to it.
+
 
 ## Creating Our Models
-
+In order to answer four different research questions, we decided to used two different Bayesian modeling: A normal-normal model and Poisson regression model. A normal-normal model assumes a normal distribution, or a "bell curve", which the density curve described by its mean and standard deviation, for both the prior and the hyperpriors. A Poisson regression model, 
 ### Hurricane Windspeed
 
 For our first model, we tried to model hurricane severity over time using the NAO index and average atmospheric CO2 levels (we removed average ocean temperature from our model because it was collinear with CO2). The variable we used to indicate hurricane severity was wind speed, since the highest windspeed of a hurricane is what is used to categorize it.
@@ -177,11 +178,9 @@ We used a normal-normal model to attempt to model wind speed with CO2 and NAO ov
 
 ### Hurricane Frequency
 
-A Markov Chain is a chain of approximated values where one value is predicted by the value just prior to it.
 
-## Creating Our Models
 
-In order to answer four different research questions, we decided to used two different Bayesian modeling: A normal-normal model and Poisson regression model. A normal-normal model assumes a normal distribution, or a "bell curve", which the density curve described by its mean and standard deviation, for both the prior and the hyperpriors. A Poisson regression model, 
+
 
 Our second and third models attempt to show a relationship between CO2, NAO, and the frequency of hurricanes over time. 
 
@@ -198,7 +197,7 @@ Using the normal-normal model, we modeled hurricane wind speed using C02 concent
 
 ### Hurricane Frequency
 
-```{r include=FALSE}
+```{r echo=FALSE}
 # Adding zones to the temperature data and limiting time interval to between 1950-2008.
 temp_data<-na.omit(temp_data) %>%  filter(1950 <= Year) %>%
   filter(Year <= 2008)
