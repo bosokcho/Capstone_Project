@@ -103,7 +103,6 @@ hurricanes_per_year4 <- merge(x = hurricanes_per_year3, y = NAO_yr, by = "YEAR",
 
 # Remove all rows with missing data
 hurricanes_per_year_clean<-na.omit(hurricanes_per_year4)
-<<<<<<< HEAD
 
 # Wind speed data
 # Create new data set with windspeed and year
@@ -115,24 +114,21 @@ windspeed_yr <- hurricane_data %>%
 hurricanes_per_year_clean <- merge(x = hurricanes_per_year_clean, y = windspeed_yr, by = "YEAR", all.x = TRUE)
 
 head(hurricanes_per_year_clean)
-
-head(hurricanes_per_year_clean)
 ```
 In the past summer, there were two major and devastating category 4 hurricanes in the US. People in Central America, Texas, Louisiana and other states lost security and loved ones from the hurricanes. Hurricane Irma soon after attacked as a ruining the coast of Florida. 
 
 We wanted to see if this increased number and severity of hurricanes are indicative of a trend and if we could predict if this trend would continue into the future.
-=======
-```
 
 ## Why Hurricanes?
 
 In the past summer, there were two major and devastating category 4 hurricanes in the US. People in Central America, Texas, Louisiana and other states lost their shelter and loved ones from Hurricane. Hurricane Irma soon after attacked as a ruining the coast of Florida. We wanted to see if this was indicative of the future. Because of the severity of the destruction from the category 4 hurricanes we are looking at the average wind speed of hurricanes. Then, because of how quickly Hurricane Irma came after Hurricane Harvey, we decided to look at the frequency to see how many time we should expect hurricanes per year. Finally, we are looking at the average durations of the hurricanes. For example, Hurricane Harvey lasted for 17 days and we wanted to see if the durations of these devastations can be modeled. Looking at the wind speed, frequency, and durations of past hurricanes, we may be able to predict future hurricanes and be more prepared for them.
->>>>>>> da9dffa7cb220db7c7ef9ed54b3d31147e2e401a
 
 ## The Datasets
 
 To measure climate changes, we looked at four different data sets. The first data set is our main data set on hurricanes, provided by the homeland infrastructure foundation level data committee. This dataset recorded the hurricane’s wind speed, dates of occurrence, location, pressure, and the category of the hurricane. 
+
 Our indicator variables are temperature anomalies provided by NASA, CO2 provided by the national oceanic and atmospheric administration, and the North Atlantic Oscillation Index or NAOI which is provided by the national center for atmospheric research.
+
 C02 concentration showed fluctuation throughout the years because when plants are growing, photosynthesis outweighs respiration. As a result, plants take more CO2 out of the atmosphere during the warm months when they are growing the most. This can lead to noticeably lower CO2 concentrations in the atmosphere. Respiration occurs all the time, but dominates during the colder months of the year, resulting in higher CO2 levels in the atmosphere during those months.
 
 ```{r message=FALSE, warning=FALSE, echo=FALSE}
@@ -143,11 +139,13 @@ ggplot(CO2, aes(Date, Average)) + geom_line()+xlab("Year")+ylab("C02 concentrati
 The temperature anomalies are the difference from the temperature at the time from the baseline temperature, which is created from an average of 30 years of temperature data. We used temperatures because absolute temperatures, or actual temeperatures measured in current time is more prone to extraneous variables such as the temeprature measurement tower, wherease temperature anomaly are not as affected by these extraneous variables.
 
 ```{r echo=FALSE}
+
 # plot of temperature anomaly by year
 ggplot(temp_recent,aes(x=Year))+
   geom_line(aes(y=NHem))+
   ylab("Temperature Anomolies")+
   geom_smooth(method='lm', aes(Year,NHem), size=0.5, se=FALSE)
+
 ```
 
 NAOI is the fluctuations in the difference of atmospheric pressure at sea level (SLP) in the Northern Atlantic ocean.
@@ -165,7 +163,6 @@ ggplot(data = NAO_avgMonth, aes(x = Group.1, y = x)) + geom_point(color = "blue"
 
 ## What is a Markov Chain?
 
-<<<<<<< HEAD
 For all our models we ran Markov chains in order to simulate the posterior results after running our models in rjags.
 
 ## Creating Our Models
@@ -177,13 +174,12 @@ For our first model, we tried to model hurricane severity over time using the NA
 We used a normal-normal model to attempt to model wind speed with CO2 and NAO over time. The normal-normal model is called that because both the prior and posterior distributions of the data are normally distributed. All of the priors for this model are vague because, prior to creating and running our models, we didn't know much about the impact of NAO or CO2 on hurricane wind speed.
 
 ### Hurricane Frequency
-=======
+
 A Markov Chain is a chain of approximated values where one value is predicted by the value just prior to it.
 
 ## Creating Our Models
 
 In order to answer four different research questions, we decided to used two different Bayesian modeling: A normal-normal model and Poisson regression model. A normal-normal model assumes a normal distribution, or a "bell curve", which the density curve described by its mean and standard deviation, for both the prior and the hyperpriors. A Poisson regression model, 
->>>>>>> da9dffa7cb220db7c7ef9ed54b3d31147e2e401a
 
 Our second and third models attempt to show a relationship between CO2, NAO, and the frequency of hurricanes over time. 
 
@@ -196,7 +192,6 @@ ggplot(hurricanes_wind, aes(x = YEAR, y = AVG_WIND)) + geom_point() + ylab("Aver
 ```
 
 Using the normal-normal model, we modeled hurricane wind speed using C02 concentration and NAO index. We ran 50000 itreations of the Markov Chain and found that this model was not very good at modeling hurricane severity.
-
 
 ### Hurricane Frequency
 
@@ -271,9 +266,7 @@ freq_sample_small <- Nth.delete(freq_sample, 2)
 
 ### Hurricane Duration
 
-<<<<<<< HEAD
-Our final model attempted to model the duration of the hurricane w
-=======
+Our final model attempted to model the duration of the hurricane by total number of days the hurricane lasted.
 ```{r echo=FALSE}
 # Hurricane data only looking at Date and name
 hurricane_time<-subset(recent_hurricanes, select = c(NAME,YEAR,MONTH,DAY))
@@ -341,7 +334,18 @@ duration_samples <- data.frame(duration_sim[[1]])
 plot(duration_sim)
 ```
 
->>>>>>> da9dffa7cb220db7c7ef9ed54b3d31147e2e401a
+
+"EQU-24N", "24N-44N", "44N-64N", "64N-90N"
+
+```{r}
+
+#install.packages("marmap")
+library(marmap)
+EQU.24N <- getNOAA.bathy(lon1 = 100, lon2 = 70, lat1 = 0, lat2 = 24, resolution = 10)
+plot(EQU.24N)
+
+```
+
 
 ## Conclusion
 
