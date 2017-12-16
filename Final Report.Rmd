@@ -18,7 +18,6 @@ library(rjags)
 library(MacBayes)
 ```
 
-Loading the data...
 ```{r include=FALSE}
 # Loading the Data
 hurricane_data <- read_csv("Historical_Tropical_Storm_Tracks.csv")
@@ -28,19 +27,6 @@ hurricane_data<-subset(hurricane_data, select=-c(BTID, AD_TIME))
 # Recent Hurricanes--select only hurricanes in 1950 and after
 recent_hurricanes <- hurricane_data[hurricane_data$YEAR >= 1950, ] 
 recent_hurricanes <- recent_hurricanes[!(recent_hurricanes$NAME=="NOTNAMED"),]
-#Format Coordinates
-dat<-as.character(recent_hurricanes$LAT)
-new<-substr(dat,1,nchar(dat))
-lat<-as.numeric(new)
-dat<-as.character(recent_hurricanes$LONG)
-new<-substr(dat,1,nchar(dat))
-long<-as.numeric(new)
-long<- -abs(long)
-coord<-as.data.frame(long)
-#Add year and name
-year<-as.character(recent_hurricanes$YEAR)
-name<-as.character(recent_hurricanes$NAME)
-hurricane_locations<-cbind(year, name, coord, lat)
 
 # Hurricane Frequency
 # table of hurricanes per year
@@ -132,17 +118,24 @@ Our indicator variables are temperature anomalies provided by NASA, CO2 provided
 The temperature anomalies are the difference from the temperature at the time from the baseline temperature, which is created from an average of 30 years of temperature data. 
 NAOI is the fluctuations in the difference of atmospheric pressure at sea level (SLP) in the Northern Atlantic ocean.
 
-## What is MCMC?
+## What is a Markov Chain?
 
-For all models we decided to run Markov chains to 
+A Markov Chain is a chain of approximated values where one value is predicted by the value just prior to it.
 
 ## Creating Our Models
 
-### Hurricane Frequency
+In order to answer four different research questions, we decided to used two different Bayesian modeling: A normal-normal model and Poisson regression model.
 
 ### Hurricane Windspeed
 
+
+
+### Hurricane Frequency
+
+
 ### Hurricane Duration
+
+In order to model average duration of hurricanes, we decided to use normal-normal model using zone categories and temperature anomalies. First, we decided to use these two variables because location seemed to have a higher correlation to hurricanes than C02 and the NAO index. Also, we decided on a normal-normal model because, the durations are not all at a constant rate depending on the hurricanes. The model seemed to be broad enough to incorporate the variability of hurricane durations.
 
 
 ## Conclusion
@@ -263,6 +256,7 @@ head(hurricanes_per_year_clean)
 ### Markov Chain for Windspeed
 
 
+
 ### Markov Chains for Frequency
 
 #### Creating dataset for frequency, temperature, and zones
@@ -347,7 +341,6 @@ colnames(foo)[2] <- "duration"
 colnames(foo)[1]<-"year"
 #create durations with temperature data, CO2 data, NAOI data and frequency data
 durations <- merge(foo, hurricanes_per_zone, by = c("year"), all.x = TRUE, all.y = TRUE)
-
 ```
 
 #### Running the model
