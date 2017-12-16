@@ -4,26 +4,18 @@ author: "Madeline Abbott"
 date: "November 19, 2017"
 output: html_document
 ---
+```{r include=FALSE}
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
 
+library(ggmap)
+library(reshape2)
+```
 
 # Plotting
 ```{r}
-# ideas: cloropleth of category
-# trace tracks of named hurricanes
-
-# creating a sample data.frame with your lat/lon points
-transform(hurricanes_recent, char = as.numeric(LAT))
-transform(hurricanes_recent, char = as.numeric(LONG))
-
-# getting the map
-map_hurricanes <- get_map(location = c(lon = mean(hurricanes_recent$LONG), lat = mean(hurricanes_recent$LAT)), zoom = 4, maptype = "watercolor", scale = 2)
-
-# plotting the map with some points on it
-ggmap(map_hurricanes) +
-  geom_point(data = hurricanes_recent, aes(x = LONG, y = LAT, fill = "red", alpha = 0.1, size = 3*WIND_KTS/(max(WIND_KTS))), color = "green") +
-  guides(fill=FALSE, alpha=FALSE, size=FALSE)
-
-
 # MAKING A HEAT MAP
 library(MASS)
 library(ggplot2)
@@ -45,7 +37,29 @@ get_density <- function(x, y, n = 100) {
 
 
 hurricanes_recent$density <- get_density(hurricanes_recent$LONG, hurricanes_recent$LAT)
-ggmap(map_hurricanes) + geom_point(data = hurricanes_recent, aes(x = LONG, y = LAT, color = density)) +   guides(fill=FALSE, alpha=FALSE, size=FALSE) scale_color_viridis()
+ggmap(map_hurricanes) + geom_point(data = hurricanes_recent, aes(x = LONG, y = LAT, color = density)) +   guides(fill=FALSE, alpha=FALSE, size=FALSE) + scale_color_viridis() + xlim(min(hurricanes_recent$LONG), max(hurricanes_recent$LONG)) + ylim(min(hurricanes_recent$LONG), max(hurricanes_recent$LONG))
+
+
+
+# ideas: cloropleth of category
+# trace tracks of named hurricanes
+
+# creating a sample data.frame with your lat/lon points
+transform(hurricanes_recent, char = as.numeric(LAT))
+transform(hurricanes_recent, char = as.numeric(LONG))
+
+# getting the map
+map_hurricanes <- get_map(location = c(lon = mean(hurricanes_recent$LONG), lat = mean(hurricanes_recent$LAT)), zoom = 2, maptype = "terrain", scale = 2)
+
+# plotting the map with some points on it
+ggmap(map_hurricanes) +
+  geom_point(data = hurricanes_recent, aes(x = LONG, y = LAT, alpha = 0.1, color = density)) + scale_color_viridis() + guides(size=FALSE)
+
+
+
+ggmap(map_hurricanes) +
+  geom_point(data = hurricanes_recent, aes(x = LONG, y = LAT, fill = density, alpha = 0.1, size = 3*WIND_KTS/(max(WIND_KTS)))) +
+  guides(fill=FALSE, alpha=FALSE, size=FALSE) + scale_color_viridis()
 
 ```
 
