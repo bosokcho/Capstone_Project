@@ -196,17 +196,23 @@ ggplot(hurricanes_per_year_clean, aes(x = avg_NAO)) + geom_histogram(color = 'wh
 
 Plot hurricanes per year by temperature
 ```{r}
-ggplot(hurricanes_per_year_clean, aes(x = temp, y = TOTAL_H)) + geom_point(color = "firebrick1") + xlab("Temperature") + ylab("Total Number of Hurricanes")
+ggplot(hurricanes_per_year_clean, aes(x = temp, y = TOTAL_H)) + geom_point(color = "blue1", size = 3) + xlab("Temperature Anomalies") + ylab("Total Number of Hurricanes") + geom_smooth(method='lm', se= FALSE, color = "dimgray")
 ```
 
 Hurricanes per year by CO2 levels
 ```{r}
-ggplot(hurricanes_per_year_clean, aes(x = avg_CO2, y = TOTAL_H)) + geom_point(color = "darkslateblue") + xlab("CO2 Concentration") + ylab("Total Number of Hurricanes")
+ggplot(hurricanes_per_year_clean, aes(x = avg_CO2, y = TOTAL_H)) + geom_point(color = "darkslateblue", size = 3) + xlab("CO2 Concentration") + ylab("Total Number of Hurricanes") + geom_smooth(method='lm', se= FALSE, color = "dimgray")
 ```
 
 Hurricanes per year by NAO levels
 ```{r}
-ggplot(hurricanes_per_year_clean, aes(x = avg_NAO, y = TOTAL_H)) + geom_point(color = "aquamarine4") + xlab("NAO Index") + ylab("Total Number of Hurricanes")
+ggplot(hurricanes_per_year_clean, aes(x = avg_NAO, y = TOTAL_H)) + geom_point(color = "aquamarine4", size = 3) + xlab("NAO Index") + ylab("Total Number of Hurricanes") + geom_smooth(method='lm', se= FALSE, color = "dimgray")
+```
+
+
+NAO index by year
+```{r}
+ggplot(hurricanes_per_year_clean, aes(x = YEAR, y = avg_NAO)) + geom_point(color = "gray26", size = 3) + xlab("Year") + ylab("NAO Index") + geom_smooth(method='lm', se= FALSE, color = "dimgray")
 ```
 
 

@@ -21,7 +21,11 @@ library(MASS)
 library(viridis)
 #library(shiny)
 library(rjags)
+<<<<<<< HEAD
 library(naivebayes)
+=======
+#library(naivebayes)
+>>>>>>> dfb5aad58eaf480b14149ba1fab64674e468cf89
 ```
 
 # Progress Made:
@@ -38,7 +42,11 @@ We formulated 3 potential, relevant research questions. We designed models for t
 # Research questions:
 
 ### 1.
+<<<<<<< HEAD
 Can we model the durations of hurricanes over the years?
+=======
+Can we model  the trend of average durations of hurricanes over the years?
+>>>>>>> dfb5aad58eaf480b14149ba1fab64674e468cf89
 
 Model 1:
 
@@ -169,10 +177,34 @@ hurricanes_per_year4 <- merge(x = hurricanes_per_year3, y = NAO_yr, by = "YEAR",
 
 # Remove all rows with missing data
 hurricanes_per_year_clean<-na.omit(hurricanes_per_year4)
+<<<<<<< HEAD
 ```
 
 
 
+=======
+
+```
+
+```{r}
+
+head(hurricane_data)
+
+windspeed_yr <- hurricane_data %>%
+  group_by(YEAR) %>%
+  summarise(avg_windspeed = mean(WIND_KTS))
+
+windspeed_yr
+
+```
+
+```{r}
+
+HURRICANES <- merge(x = hurricanes_per_year_clean, y = windspeed_yr, by = "YEAR", all.x = TRUE)
+
+head(HURRICANES)
+```
+>>>>>>> dfb5aad58eaf480b14149ba1fab64674e468cf89
 
 
 ## 1.
@@ -187,7 +219,11 @@ foo <- hurricane_time %>%
   mutate(date = as.Date(paste(YEAR, MONTH, DAY, sep='-')), "%Y-%m-%d") %>%
   summarise(duration = max(date) - min(date))
 #removed outlier
+<<<<<<< HEAD
 foo<-foo[!(foo$YEAR==1954 & foo$NAME=="ALICE"),]
+=======
+foo<-foo[!(foo$YEAR==1954 & foo$NAME=="ALICE"|foo$YEAR==2005),]
+>>>>>>> dfb5aad58eaf480b14149ba1fab64674e468cf89
 # Averaging duration per year
 foo<-group_by(foo, YEAR)%>%
   summarise(mean(duration))
@@ -209,8 +245,13 @@ duration_model <- "model{
     }
 
     #Priors
+<<<<<<< HEAD
     mu ~ dnorm(0,1/1000)
     tau ~ dgamma(2, 0.05)
+=======
+    mu ~ dnorm(6.37,1/1000)
+    tau ~ dgamma(9, 6)
+>>>>>>> dfb5aad58eaf480b14149ba1fab64674e468cf89
 }"
 
 
@@ -223,13 +264,38 @@ duration_sim <- coda.samples(duration_jags, variable.names=c("mu","tau", "theta"
 
 duration_samples <- data.frame(step=1:10000, duration_sim[[1]])
 head(duration_samples)
+<<<<<<< HEAD
 ```
 
 ```{r}
+=======
+plot(duration_sim)
+summary(duration_sim)
+```
+
+```{r message=FALSE, warning=FALSE}
+data(foo)
+
+## 50% of the sample size
+smp_size <- floor(0.50 * nrow(foo))
+
+## set the seed to make your partition reproductible
+set.seed(123)
+train_ind <- sample(seq_len(nrow(foo)), size = smp_size)
+
+foo_train <- foo[train_ind, ]
+foo_test <- foo[-train_ind, ]
+```
+
+```{r}
+library(rjags)
+
+>>>>>>> dfb5aad58eaf480b14149ba1fab64674e468cf89
 #specify the model
 duration2_model <- "model{
     #Data
     for(i in 1:length(x)) {
+<<<<<<< HEAD
         x[i] ~ dnorm(mu,tau)
     }
 
@@ -244,6 +310,66 @@ duration2_sim <- coda.samples(duration2_jags, variable.names=c("mu","tau"), n.it
 
 duration2_samples <- data.frame(step=1:10000, duration2_sim[[1]])
 head(duration2_samples)
+=======
+        y[i] ~ dnorm(beta0 +beta1*x[i],tau)
+    }
+
+    #Priors
+    beta0 ~ dnorm(6.37,1/1000)
+    beta1~dnorm(0,1/1000)
+    tau ~ dgamma(9, 6)
+}"
+
+
+
+duration2_jags <- jags.model(textConnection(duration2_model), data=list(x=foo_train$Average_Duration), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+
+
+
+duration2_sim <- coda.samples(duration2_jags, variable.names=c("beta0","beta1","tau"), n.iter=10000)
+
+duration2_samples <- data.frame(step=1:10000, duration_sim[[1]])
+head(duration2_samples)
+plot(duration2_sim)
+summary(duration2_sim)
+```
+```{r}
+library(rjags)
+
+#specify the model
+duration3_model <- "model{
+    #Data
+    for(i in 1:length(x)) {
+        y[i] ~ dnorm(beta0 +beta1*x[i],tau)
+    }
+
+    #Priors
+    beta0 ~ dnorm(6.37,1/1000)
+    beta1~dnorm(0,1/1000)
+    tau ~ dgamma(9, 6)
+}"
+
+
+
+duration3_jags <- jags.model(textConnection(duration3_model), data=list(x=foo_test$Average_Duration), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+
+
+
+duration3_sim <- coda.samples(duration2_jags, variable.names=c("beta0","beta1","tau"), n.iter=10000)
+
+duration3_samples <- data.frame(step=1:10000, duration_sim[[1]])
+head(duration3_samples)
+plot(duration3_sim)
+summary(duration3_sim)
+```
+
+```{r}
+summary(foo_test)
+head(foo_test)
+mean(foo_test$Average_Duration)
+quantile(foo_test$Average_Duration, c(0.025, 0.975))
+mean(duration2_samples>50)
+>>>>>>> dfb5aad58eaf480b14149ba1fab64674e468cf89
 ```
 
 
@@ -413,6 +539,7 @@ Can we predict the severity of these disasters based on trends in hurricane wind
 
 This is an example rjags for this model. It doesn't run yet because of issues with data merging.
 
+<<<<<<< HEAD
 
 *specify the model
 windSpeed_model <- "model{
@@ -443,3 +570,43 @@ windSpeed_sim <- coda.samples(windSpeed_jags, variable.names=c("beta0","beta1","
 *store the samples in a data frame:
 windSpeed_sample <- data.frame(step=1:10000, BB_sim[[1]])
 head(windSpeed_sample)
+=======
+```{r}
+names(HURRICANES)
+```
+
+```{r}
+#*specify the model
+library(rjags)
+
+windSpeed_model <- "model{
+    #Data
+    for(i in 1:length(y)) {
+        y[i] ~ dnorm(beta0 + beta1*c[i] + beta2*t[i] + beta3*n[i], tau)
+
+    }
+    #Priors
+    beta0 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta1 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta2 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta3 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    tau ~ dgamma(0.001, 0.001)
+
+}"
+
+#*set up an algorithm to simulate the posterior by
+#*combining the model (games_model) and data (x)
+#*set the random number seed
+windSpeed_jags <- jags.model(textConnection(windSpeed_model),data=list(y=HURRICANES$avg_windspeed,c=HURRICANES$avg_CO2, t=HURRICANES$temp,n=HURRICANES$avg_NAO),
+                    inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+
+#*simulate a sample from the posterior
+#*note that we specify both mu and tau variables
+windSpeed_sim <- coda.samples(windSpeed_jags, variable.names=c("beta0","beta1","beta2"), n.iter=10000)
+
+
+#*store the samples in a data frame:
+windSpeed_sample <- data.frame(step=1:10000, windSpeed_sim[[1]])
+head(windSpeed_sample)
+```
+>>>>>>> dfb5aad58eaf480b14149ba1fab64674e468cf89
