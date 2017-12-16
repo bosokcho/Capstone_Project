@@ -159,6 +159,20 @@ Possible things we could do:
 \
 
 
+# Creating Testing and Training Data
+```{r}
+# use hurricanes per year data
+rownames(hurricanes_per_year_clean) <- 1:nrow(hurricanes_per_year_clean)
+
+# select first 80% of data
+train_ind <- rep(1:(0.80*nrow(hurricanes_per_year_clean)))
+hurricanes_per_year_train <- hurricanes_per_year_clean[train_ind, ]
+
+# use the remaining 20% of the data for testing
+hurricanes_per_year_test <- hurricanes_per_year_clean[-train_ind, ]
+```
+
+
 ## Question 1.
 
 Can we model the change in frequency of hurricanes based on trends in hurricane windspeed and category, temperature, CO2, and NAO index?
@@ -200,8 +214,13 @@ $$\beta_{2} \sim N(0, 1e6)$$
 
 
 Simulating the model using rjags:
+<<<<<<< HEAD
+```{r}
+head(hurricanes_per_year_train)
+=======
 ```{r echo=FALSE}
 head(hurricanes_per_year_clean)
+>>>>>>> 9253d0d5ee157444cd7fe9184841d0ec9949ff8c
 
 hur_mod <- " model {
   for (i in 1:length(TOTAL_H)) {
@@ -220,10 +239,8 @@ hur_mod <- " model {
 data_jags = as.list(hurricanes_per_year_clean[,2:5])
 str(data_jags)
 
-#freq_jags <- jags.model(textConnection(hur_mod),data=list(TOTAL_H = hurricanes_per_year_clean$TOTAL_H, X1 = hurricanes_per_year_clean$temp, X2 = hurricanes_per_year_clean$avg_CO2,X3 = hurricanes_per_year_clean$avg_NAO), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=2000))
-
 # manually initialize parameters
-freq_jags <- jags.model(textConnection(hur_mod),data=list(TOTAL_H = hurricanes_per_year_clean$TOTAL_H, X1 = hurricanes_per_year_clean$avg_CO2,X2 = hurricanes_per_year_clean$avg_NAO), inits=list(beta0=5,beta1=0, beta2=0))
+freq_jags <- jags.model(textConnection(hur_mod),data=list(TOTAL_H = hurricanes_per_year_train$TOTAL_H, X1 = hurricanes_per_year_train$avg_CO2,X2 = hurricanes_per_year_train$avg_NAO), inits=list(beta0=5,beta1=0, beta2=0))
 
 # simulate a sample from the posterior
 # note that we specify both mu and tau variables
@@ -232,6 +249,8 @@ freq_sim <- coda.samples(freq_jags, variable.names = c("beta0", "beta1", "beta2"
 # store the samples in a data frame:
 freq_sample <- data.frame(step = 1:5000, freq_sim[[1]])
 head(freq_sample, 10)
+
+plot(freq_sim)
 
 
 # make a dataframe of parameter values every other step to make plotting faster
@@ -242,9 +261,9 @@ freq_sample_small <- Nth.delete(freq_sample, 2)
 Looking at convergence
 ```{r echo=FALSE}
 library(MacBayes)
-running_mean_plot(x=freq_sample_small$beta0, se=TRUE)
-running_mean_plot(x=freq_sample_small$beta1, se=TRUE)
-running_mean_plot(x=freq_sample_small$beta2, se=TRUE)
+#running_mean_plot(x=freq_sample_small$beta0, se=TRUE)
+#running_mean_plot(x=freq_sample_small$beta1, se=TRUE)
+#running_mean_plot(x=freq_sample_small$beta2, se=TRUE)
 ```
 
 Based on the running mean plots, parameters look like they have converged.  Parameter mean values and 95% credible intervals are as follows:
@@ -258,15 +277,27 @@ mean(freq_sample$beta1)
 mean(freq_sample$beta2)
 ```
 
-Beta0 has a mean of 2.327235 and a 95% CI of (0.7864641, 4.1668185).
+Beta0 has a mean of 3.543205 and a 95% CI of (1.209219, 6.417573.
 
-Beta1 has a mean of 0.002818374 and a 95% CI of (-0.001344940, 0.007860139).
+Beta1 has a mean of -0.000656804 and a 95% CI of (-0.007524760,  0.007268657).
 
-Beta2 has a mean of 0.001306308 and a 95% CI of (-0.1105324, 0.1350339).
+Beta2 has a mean of 0.03147051 and a 95% CI of (-0.0852778,  0.1710288).
 
 \
 
 From these results, we conclude that average annual CO2 concentration and NAO index are not useful predictors of hurricane frequency.
+FIX THIS
+```{r}
+#log(lam[i]) = beta0 + beta1*X1[i] + beta2*X2[i]
+
+predictions <- rep(0, nrow(hurricanes_per_year_test)) 
+for (i in 1:nrow(hurricanes_per_year_test)){
+  predictions[i] <- rpois(1, lambda=exp(freq_sample$beta0 + freq_sample$beta1*hurricanes_per_year_test$avg_CO2[i] + freq_sample$beta2*hurricanes_per_year_test$avg_NAO[i]))
+}
+```
+
+
+
 
 
 ## Hurricanes by Zones
@@ -289,12 +320,18 @@ Now divide hurricane observations into these same four zones.
 ```{r}
 head(hurricane_locations)
 
-hurricanes_zones <- hurricane_locations %>% 
-  mutate(zone=cut(lat, breaks=c(0, 24, 44, 64, 90), labels=c("N64to90", "N44to64", "N24to44", "EQUtoN24"))) %>%
+
+hurricane_locations_Atlantic <- merge(hurricane_locations, recent_hurricanes, by.x = c("name", "year", "lat", "long"), by.y = c("NAME", "YEAR", "LAT", "LONG"), all.x = TRUE) %>%
+  filter(BASIN == "North Atlantic") %>%
+  dplyr::select(c(year, name, long, lat))
+
+hurricanes_zones <- hurricane_locations_Atlantic %>% 
+  mutate(zone=cut(lat, breaks=c(0, 24, 44, 64, 90), labels=c("EQUtoN24", "N24to44", "N44to64", "N64to90"))) %>%
   group_by(year, zone)  %>%
   summarise(total = n())
 
 head(hurricanes_zones, 40)
+
 ```
 
 Combine the hurricane and temperature data frames together
@@ -346,6 +383,16 @@ mean(freq_sample2$beta1)
 
 beta1, x1 is temp; beta2, x2 is zone
 
+Look at the data
+```{r}
+head(hurricanes_per_zone)
+train_zone <- hurricanes_per_zone %>%
+  filter(year < 1996)
+test_zone <- hurricanes_per_zone %>%
+  filter(year >= 1996)
+```
+
+
 
 Poisson regression--with temperature and location zone
 ```{r fig.height=8}
@@ -365,42 +412,81 @@ hur_mod3 <- " model {
 
 # set up an algorithm to simulate the posterior by combining the model and data (x)
 # set the random number seed
-freq_jags3 <- jags.model(textConnection(hur_mod3),data=list(total = hurricanes_per_zone$total, X1 = hurricanes_per_zone$temp, X2 = hurricanes_per_zone$zone), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=2000))
+#freq_jags3 <- jags.model(textConnection(hur_mod3),data=list(total = train_zone$total, X1 = train_zone$temp, X2 = train_zone$zone), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=2000))
+
+# try to manuall initialize params
+freq_jags3 <- jags.model(textConnection(hur_mod3),data=list(total = train_zone$total, X1 = train_zone$temp, X2 = train_zone$zone), inits=list(beta0=0, beta1=0, beta2 = c(NA, 8, 10, 10)))
+
 
 # simulate a sample from the posterior
+<<<<<<< HEAD
+freq_sim3 <- coda.samples(freq_jags3, variable.names = c("beta0", "beta1", "beta2"), n.iter=2500000)
+=======
 freq_sim3 <- coda.samples(freq_jags3, variable.names = c("beta1", "beta2"), n.iter=1000)
+>>>>>>> 9253d0d5ee157444cd7fe9184841d0ec9949ff8c
 
 # store the samples in a data frame:
-freq_sample3 <- data.frame(step = 1:1000, freq_sim3[[1]])
+freq_sample3 <- data.frame(step = 1:2500000, freq_sim3[[1]])
 head(freq_sample3, 10)
 plot(freq_sim3)
+<<<<<<< HEAD
+
+freq_sample3_small <- Nth.delete(freq_sample3, 2)
+
+plot_freq_sample3 <- freq_sample3 %>%
+  filter(step > (2500000-100000))
+=======
+>>>>>>> 9253d0d5ee157444cd7fe9184841d0ec9949ff8c
 ```
+
+
 
 Check for convergence
 ```{r}
-running_mean_plot(x=freq_sample3$beta0, se=TRUE)
-running_mean_plot(x=freq_sample3$beta1, se=TRUE)
+running_mean_plot(x=freq_sample3_small$beta0, se=TRUE)
+running_mean_plot(x=freq_sample3_small$beta1, se=TRUE)
 
-running_mean_plot(x=freq_sample3$beta2.2., se=TRUE)
-running_mean_plot(x=freq_sample3$beta2.3., se=TRUE)
-running_mean_plot(x=freq_sample3$beta2.4., se=TRUE)
+running_mean_plot(x=freq_sample3_small$beta2.1, se=TRUE)
+running_mean_plot(x=freq_sample3_small$beta2.2., se=TRUE)
+running_mean_plot(x=freq_sample3_small$beta2.3., se=TRUE)
+running_mean_plot(x=freq_sample3_small$beta2.4., se=TRUE)
+
+
+
+running_mean_plot(x=plot_freq_sample3$beta2.1., se=TRUE)
+running_mean_plot(x=plot_freq_sample3$beta2.2., se=TRUE)
+running_mean_plot(x=plot_freq_sample3$beta2.3., se=TRUE)
+running_mean_plot(x=plot_freq_sample3$beta2.4., se=TRUE)
+
 ```
 
 
 
 Look at parameter values
 ```{r}
-quantile(freq_sample3$beta0, c(0.05, 0.975)) 
-quantile(freq_sample3$beta1, c(0.05, 0.975))
-quantile(freq_sample3$beta2.2., c(0.05, 0.975))
-quantile(freq_sample3$beta2.3., c(0.05, 0.975))
-quantile(freq_sample3$beta2.4., c(0.05, 0.975))
+# beta 0
+quantile(freq_sample3$beta0, c(0.025, 0.975))
+# beta 1
+quantile(freq_sample3$beta1, c(0.025, 0.975))
+# beta 2.2
+quantile(freq_sample3$beta2.2., c(0.025, 0.975))
+# beta 2.3
+quantile(freq_sample3$beta2.3., c(0.025, 0.975))
+# beta 2.4
+quantile(freq_sample3$beta2.4., c(0.025, 0.975))
 
+# beta 0
 mean(freq_sample3$beta0)
+# beta 1
 mean(freq_sample3$beta1)
+# beta 2.2
 mean(freq_sample3$beta2.2.)
+# beta 2.3
 mean(freq_sample3$beta2.3.)
+# beta 2.4
 mean(freq_sample3$beta2.4.)
+<<<<<<< HEAD
+=======
 ```
 
 
@@ -452,8 +538,128 @@ duration_model <- "model{
     tau ~ dgamma(.001, .001)
 }"
 
+>>>>>>> 9253d0d5ee157444cd7fe9184841d0ec9949ff8c
+
+summary(freq_sample3)
+
+<<<<<<< HEAD
+```
 
 
+Testing the model
+```{r}
+library(dplyr)
+
+# Testing Zone N64to90--begin with the northern-most zone
+# select data in this zone
+test_zoneN64to90 <- test_zone %>%
+  dplyr::filter(c(zone == "N64to90")) %>%
+  dplyr::select(-c(zone))
+# create prediction function--takes 1000 draws from Poisson distribution
+hurri_prediction_zoneN64to90 <- function(X1){
+  pred <- rpois(1000, exp(freq_sample3$beta0 + freq_sample3$beta1*X1))
+  return(pred)
+}
+# create empty vector to store predictions
+hurri_preds_zoneN64to90 <- rep(0, nrow(test_zoneN64to90))
+# get predictions--mean predicted value for each year in this zone
+for (i in 1:nrow(test_zoneN64to90)){
+  hurri_preds_zoneN64to90[i] <- mean(hurri_prediction_zoneN64to90(X1 = test_zoneN64to90$temp[i]))
+}
+
+
+# Testing Zone N44to64--next northern-most zone
+# select data in this zone
+test_zoneN44to64 <- test_zone %>%
+  dplyr::filter(c(zone == "N44to64")) %>%
+  dplyr::select(-c(zone))
+# create prediction function--takes 1000 draws from poisson distribution
+hurri_prediction_zoneN44to64 <- function(X1){
+  pred <- rpois(1000, exp(freq_sample3$beta0 + freq_sample3$beta2.2. + freq_sample3$beta1*X1))
+  return(pred)
+}
+# create empty vector to store predictions
+hurri_preds_zoneN44to64 <- rep(0, nrow(test_zoneN44to64))
+# get predictions--mean predicted value for each year in this zone
+for (i in 1:nrow(test_zoneN44to64)){
+  hurri_preds_zoneN44to64[i] <- mean(hurri_prediction_zoneN44to64(X1 = test_zoneN44to64$temp[i]))
+}
+
+
+# Testing Zone N24to44--the next northern-most zone
+# select data in this zone
+test_zoneN24to44 <- test_zone %>%
+  dplyr::filter(c(zone == "N24to44")) %>%
+  dplyr::select(-c(zone))
+# create prediction function--takes 1000 draws from poisson distribution
+hurri_prediction_zoneN24to44 <- function(X1){
+  pred <- rpois(1000, exp(freq_sample3$beta0 + freq_sample3$beta2.3. + freq_sample3$beta1*X1))
+  return(pred)
+}
+# create empty vector to store predictions
+hurri_preds_zoneN24to44 <- rep(0, nrow(test_zoneN24to44))
+# get predictions--mean predicted value for each year in this zone
+for (i in 1:nrow(test_zoneN24to44)){
+  hurri_preds_zoneN24to44[i] <- mean(hurri_prediction_zoneN24to44(X1 = test_zoneN24to44$temp[i]))
+}
+
+
+# Testing Zone EQUtoN24--southern-most zone
+# select data in this zone
+test_zoneEQUtoN24 <- test_zone %>%
+  dplyr::filter(c(zone == "EQUtoN24")) %>%
+  dplyr::select(-c(zone))
+# create prediction function--takes 1000 draws from poisson distribution
+hurri_prediction_zoneEQUtoN24 <- function(X1){
+  pred <- rpois(1000, exp(freq_sample3$beta0 + freq_sample3$beta1*X1 + freq_sample3$beta2.4.))
+  return(pred)
+}
+# create empty vector to store predictions
+hurri_preds_zoneEQUtoN24 <- rep(0, nrow(test_zoneEQUtoN24))
+# get predictions--mean predicted value for each year in this zone
+for (i in 1:nrow(test_zoneEQUtoN24)){
+  hurri_preds_zoneEQUtoN24[i] <- mean(hurri_prediction_zoneEQUtoN24(X1 = test_zoneEQUtoN24$temp[i]))
+}
+
+# Compare results to actual data
+zoneEQUtoN24 <- cbind(preds = as.matrix(hurri_preds_zoneEQUtoN24), test_zoneEQUtoN24)
+zoneEQUtoN24
+ggplot(zoneEQUtoN24, aes(x = year)) + geom_point(aes(y = preds, color = "predicted")) + geom_point(aes(y = total, color = "actual")) + xlim(1996, 2008) + ylim(0, 400) + ylab("total hurricanes") + ggtitle("0N to 24N")
+
+zoneN24to44 <- cbind(preds = as.matrix(hurri_preds_zoneN24to44), test_zoneN24to44)
+ggplot(zoneN24to44, aes(x = year)) + geom_point(aes(y = preds, color = "predicted")) + geom_point(aes(y = total, color = "actual")) + xlim(1996, 2008) + ylim(0, 400)+ ylab("total hurricanes") + ggtitle("24N to 44N")
+
+zoneN44to64 <- cbind(preds = as.matrix(hurri_preds_zoneN44to64), test_zoneN44to64)
+ggplot(zoneN44to64, aes(x = year)) + geom_point(aes(y = preds, color = "predicted")) + geom_point(aes(y = total, color = "actual")) + xlim(1996, 2008) + ylim(0, 400)+ ylab("total hurricanes") + ggtitle("44N to 64N")
+
+zoneN64to90 <- cbind(preds = as.matrix(hurri_preds_zoneN64to90), test_zoneN64to90)
+ggplot(zoneN64to90, aes(x = year)) + geom_point(aes(y = preds, color = "predicted"), position = "jitter") + geom_point(aes(y = total, color = "actual")) + xlim(1996, 2008) + ylim(0, 400)+ ylab("total hurricanes") + ggtitle("64N to 90N")
+
+
+# find mean squared error
+all_predictions <- rbind(zoneEQUtoN24, zoneN24to44, zoneN44to64, zoneN64to90)
+
+View(all_predictions)
+
+sum_diff <- 0
+for (i in 1:nrow(all_predictions)) {
+  sq_diff <- (all_predictions$total[i] - all_predictions$preds[i])^2
+  sum_diff <- sum_diff + sq_diff
+  print(sq_diff)
+}
+
+sum_diff/nrow(all_predictions)
+```
+
+
+
+
+
+
+
+
+
+=======
 duration_jags <- jags.model(textConnection(duration_model), data=list(y = durations$duration, X1 = durations$temp, X2 = durations$zone), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
 
 
@@ -470,6 +676,7 @@ plot(duration_sim)
 ```{r}
 running_mean_plot(x=duration_samples$beta0, se=TRUE)
 running_mean_plot(x=duration_samples$beta1, se=TRUE)
+>>>>>>> 9253d0d5ee157444cd7fe9184841d0ec9949ff8c
 
 running_mean_plot(x=duration_samples$beta2.2., se=TRUE)
 running_mean_plot(x=duration_samples$beta2.3., se=TRUE)
