@@ -18,7 +18,7 @@ library(rjags)
 library(MacBayes)
 ```
 
-```{r include=FALSE}
+```{r echo=FALSE}
 # Loading the Data
 hurricane_data <- read_csv("Historical_Tropical_Storm_Tracks.csv")
 hurricane_data<-na.omit(hurricane_data)
@@ -149,7 +149,7 @@ ggplot(temp_recent,aes(x=Year))+
   geom_smooth(method='lm', aes(Year,NHem), size=0.5, se=FALSE)
 ```
 
-NAOI is the fluctuations in the difference of atmospheric pressure at sea level (SLP) in the Northern Atlantic ocean.
+NAOI is the fluctuations in the difference of atmospheric pressure at sea level (SLP) in the Northern Atlantic ocean. Higher index values mean warmer waters in the ocean near Eastern North America and higher sea levels. NAO influences the directions for major tropical storm cyclones.
 
 ```{r message=FALSE, warning=FALSE}
 # remove 2017 (data for year is incomplete)
@@ -292,8 +292,10 @@ colnames(foo)[2] <- "duration"
 colnames(foo)[1]<-"year"
 #create durations with temperature data, CO2 data, NAOI data and frequency data
 durations <- merge(foo, hurricanes_per_zone, by = c("year"), all.x = TRUE, all.y = TRUE)
-ggplot(foo,aes(x=YEAR, y=Average_Duration))+
-  geom_line()
+ggplot(durations,aes(x=year, y=duration))+
+  geom_point()+
+  xlab("Year")+
+  ylab("Average durations")
 ```
 
 In order to model average duration of hurricanes, we decided to use normal-normal model using zone categories and temperature anomalies. First, we decided to use these two variables because location seemed to have a higher correlation to hurricanes than C02 and the NAO index. Also, we decided on a normal-normal model because, the durations are not all at a constant rate depending on the hurricanes. The model seemed to be broad enough to incorporate the variability of hurricane durations.
@@ -341,7 +343,7 @@ plot(duration_sim)
 
 ## Conclusion
 
-
+Overall, our posteriors showed that wind speed has a higher probability 
 
 ## References
 
