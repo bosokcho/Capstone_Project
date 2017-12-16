@@ -10,7 +10,6 @@ library(ggplot2)
 
 ```
 
-
 ```{r}
 
 # Alter CO2 to remove unnecessary variable trend
@@ -52,10 +51,20 @@ axis(side = 1,
 # Create colored time series 
 CO2$Date <- as.yearmon(paste(CO2$year, CO2$month), "%Y %m")
 
-#plot(CO2$average ~ CO2$Date)
+# Plot time series
 ggplot(CO2, aes(Date, Average)) + geom_line( aes(colour = year))
+
+# Add trend line
+ggplot(CO2, aes(Date, Average)) + geom_line( aes(colour = year)) + geom_smooth()
 
 ```
 
+```{r}
 
+# Show increasing CO2 over the years by month
+library(ggplot2)
+library(lubridate)
 
+ggplot(CO2, aes(x = month, y = average, color = year)) + geom_point()
+
+```
