@@ -126,21 +126,34 @@ $(document).ready(function () {
 </div>
 <div id="december-17-2017" class="section level4">
 <h4>December 17, 2017</h4>
+<<<<<<< HEAD
 <p>Loading the data…</p>
 <p>In the past summer, there were two major and devastating category 4 hurricanes in the US. People in Central America, Texas, Louisiana and other states lost security and loved ones from the hurricanes. Hurricane Irma soon after attacked as a ruining the coast of Florida.</p>
 <p>We wanted to see if this increased number and severity of hurricanes are indicative of a trend and if we could predict if this trend would continue into the future.</p>
+=======
+<p>In the past summer, there were two major and devastating category 4 hurricanes in the US. People in Central America, Texas, Louisiana and other states lost their shelter and loved ones from Hurricane. Hurricane Irma soon after attacked as a ruining the coast of Florida. We wanted to see if this was indicative of the future. Because of the severity of the destruction from the category 4 hurricanes we are looking at the average wind speed of hurricanes. Then, because of how quickly Hurricane Irma came after Hurricane Harvey, we decided to look at the frequency to see how many time we should expect hurricanes per year. Finally, we are looking at the average durations of the hurricanes. For example, Hurricane Harvey lasted for 17 days and we wanted to see if the durations of these devastations can be modeled. Looking at the wind speed, frequency, and durations of past hurricanes, we may be able to predict future hurricanes and be more prepared for them.</p>
+>>>>>>> da9dffa7cb220db7c7ef9ed54b3d31147e2e401a
 </div>
 <div id="the-datasets" class="section level2">
 <h2>The Datasets</h2>
-<p>To measure climate changes, we looked at four different data sets. The first data set is our main data set on hurricanes, provided by the homeland infrastructure foundation level data committee. This dataset recorded the hurricane’s wind speed, dates of occurrence, location, pressure, and the category of the hurricane.</p>
-<p>Our indicator variables are temperature anomalies provided by NASA, CO2 provided by the national oceanic and atmospheric administration, and the North Atlantic Oscillation Index or NAOI which is provided by the national center for atmospheric research. The temperature anomalies are the difference from the temperature at the time from the baseline temperature, which is created from an average of 30 years of temperature data. NAOI is the fluctuations in the difference of atmospheric pressure at sea level (SLP) in the Northern Atlantic ocean.</p>
+<p>To measure climate changes, we looked at four different data sets. The first data set is our main data set on hurricanes, provided by the homeland infrastructure foundation level data committee. This dataset recorded the hurricane’s wind speed, dates of occurrence, location, pressure, and the category of the hurricane. Our indicator variables are temperature anomalies provided by NASA, CO2 provided by the national oceanic and atmospheric administration, and the North Atlantic Oscillation Index or NAOI which is provided by the national center for atmospheric research. The temperature anomalies are the difference from the temperature at the time from the baseline temperature, which is created from an average of 30 years of temperature data. NAOI is the fluctuations in the difference of atmospheric pressure at sea level (SLP) in the Northern Atlantic ocean.</p>
 </div>
+<<<<<<< HEAD
 <div id="what-is-mcmc" class="section level2">
 <h2>What is MCMC?</h2>
 <p>For all our models we ran Markov chains in order to simulate the posterior results after running our models in rjags.</p>
 </div>
 <div id="creating-our-models" class="section level2">
 <h2>Creating Our Models</h2>
+=======
+<div id="what-is-a-markov-chain" class="section level2">
+<h2>What is a Markov Chain?</h2>
+<p>A Markov Chain is a chain of approximated values where one value is predicted by the value just prior to it.</p>
+</div>
+<div id="creating-our-models" class="section level2">
+<h2>Creating Our Models</h2>
+<p>In order to answer four different research questions, we decided to used two different Bayesian modeling: A normal-normal model and Poisson regression model. A normal-normal model assumes a normal distribution, or a “bell curve”, which the density curve described by its mean and standard deviation, for both the prior and the hyperpriors. A Poisson regression model,</p>
+>>>>>>> da9dffa7cb220db7c7ef9ed54b3d31147e2e401a
 <div id="hurricane-windspeed" class="section level3">
 <h3>Hurricane Windspeed</h3>
 <p>For our first model, we tried to model hurricane severity over time using the NAO index and average atmospheric CO2 levels (we removed average ocean temperature from our model because it was collinear with CO2). The variable we used to indicate hurricane severity was wind speed, since the highest windspeed of a hurricane is what is used to categorize it.</p>
@@ -150,9 +163,17 @@ $(document).ready(function () {
 <h3>Hurricane Frequency</h3>
 <p>Our second and third models attempt to show a relationship between CO2, NAO, and the frequency of hurricanes over time.</p>
 </div>
+<div id="hurricane-frequency" class="section level3">
+<h3>Hurricane Frequency</h3>
+<p>In the plot above, we can see that the frequency of hurricanes generally increase throughout the years. To model the hurricane frequency per year we first used a Poisson regression model incorporating C02 concentration and NAO index.</p>
+</div>
 <div id="hurricane-duration" class="section level3">
 <h3>Hurricane Duration</h3>
+<<<<<<< HEAD
 <p>Our final model attempted to model the duration of the hurricane w</p>
+=======
+<p>In order to model average duration of hurricanes, we decided to use normal-normal model using zone categories and temperature anomalies. First, we decided to use these two variables because location seemed to have a higher correlation to hurricanes than C02 and the NAO index. Also, we decided on a normal-normal model because, the durations are not all at a constant rate depending on the hurricanes. The model seemed to be broad enough to incorporate the variability of hurricane durations.</p>
+>>>>>>> da9dffa7cb220db7c7ef9ed54b3d31147e2e401a
 </div>
 </div>
 <div id="conclusion" class="section level2">
@@ -160,6 +181,11 @@ $(document).ready(function () {
 </div>
 <div id="references" class="section level2">
 <h2>References</h2>
+<ul>
+<li></li>
+<li></li>
+<li></li>
+</ul>
 </div>
 <div id="appendix" class="section level2">
 <h2>Appendix</h2>
@@ -266,6 +292,7 @@ hurricanes_per_year4 &lt;- merge(x = hurricanes_per_year3, y = NAO_yr, by = &quo
 # Remove all rows with missing data
 hurricanes_per_year_clean&lt;-na.omit(hurricanes_per_year4)
 
+<<<<<<< HEAD
 # Wind speed data
 # Create new data set with windspeed and year
 windspeed_yr &lt;- hurricane_data %&gt;%
@@ -275,6 +302,8 @@ windspeed_yr &lt;- hurricane_data %&gt;%
 # Merge this with the other data set
 hurricanes_per_year_clean &lt;- merge(x = hurricanes_per_year_clean, y = windspeed_yr, by = &quot;YEAR&quot;, all.x = TRUE)
 
+=======
+>>>>>>> da9dffa7cb220db7c7ef9ed54b3d31147e2e401a
 head(hurricanes_per_year_clean)</code></pre>
 </div>
 <div id="markov-chain-for-windspeed" class="section level3">
@@ -302,9 +331,12 @@ hurricanes_zones &lt;- hurricane_locations %&gt;%
 # Combine the  hurricane and temperature dataset together
 hurricanes_per_zone &lt;- merge(my_temp, hurricanes_zones, by = c(&quot;year&quot;, &quot;zone&quot;), all.x = TRUE, all.y = TRUE)
 hurricanes_per_zone[is.na(hurricanes_per_zone)] &lt;- 0</code></pre>
+<<<<<<< HEAD
 <pre class="r"><code>#head(hurricanes_per_zone)
 #hurricanes_per_zone$zone
 #EQUtoN24 N24to44  N44to64  N64to90</code></pre>
+=======
+>>>>>>> da9dffa7cb220db7c7ef9ed54b3d31147e2e401a
 </div>
 <div id="using-co2-and-naoi" class="section level4">
 <h4>Using CO2 and NAOI</h4>

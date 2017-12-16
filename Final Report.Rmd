@@ -2,7 +2,7 @@
 #### By: Madeline Abbott, Aidan Teppema, Daisy Cho
 #### December 17, 2017
 
-```{r include=FALSE}
+```{r echo=FALSE}
 library(readr)
 library(dplyr)
 library(tidyr)
@@ -18,7 +18,6 @@ library(rjags)
 library(MacBayes)
 ```
 
-Loading the data...
 ```{r include=FALSE}
 # Loading the Data
 hurricane_data <- read_csv("Historical_Tropical_Storm_Tracks.csv")
@@ -28,19 +27,6 @@ hurricane_data<-subset(hurricane_data, select=-c(BTID, AD_TIME))
 # Recent Hurricanes--select only hurricanes in 1950 and after
 recent_hurricanes <- hurricane_data[hurricane_data$YEAR >= 1950, ] 
 recent_hurricanes <- recent_hurricanes[!(recent_hurricanes$NAME=="NOTNAMED"),]
-#Format Coordinates
-dat<-as.character(recent_hurricanes$LAT)
-new<-substr(dat,1,nchar(dat))
-lat<-as.numeric(new)
-dat<-as.character(recent_hurricanes$LONG)
-new<-substr(dat,1,nchar(dat))
-long<-as.numeric(new)
-long<- -abs(long)
-coord<-as.data.frame(long)
-#Add year and name
-year<-as.character(recent_hurricanes$YEAR)
-name<-as.character(recent_hurricanes$NAME)
-hurricane_locations<-cbind(year, name, coord, lat)
 
 # Hurricane Frequency
 # table of hurricanes per year
@@ -117,6 +103,7 @@ hurricanes_per_year4 <- merge(x = hurricanes_per_year3, y = NAO_yr, by = "YEAR",
 
 # Remove all rows with missing data
 hurricanes_per_year_clean<-na.omit(hurricanes_per_year4)
+<<<<<<< HEAD
 
 # Wind speed data
 # Create new data set with windspeed and year
@@ -134,19 +121,51 @@ head(hurricanes_per_year_clean)
 In the past summer, there were two major and devastating category 4 hurricanes in the US. People in Central America, Texas, Louisiana and other states lost security and loved ones from the hurricanes. Hurricane Irma soon after attacked as a ruining the coast of Florida. 
 
 We wanted to see if this increased number and severity of hurricanes are indicative of a trend and if we could predict if this trend would continue into the future.
+=======
+```
+
+## Why Hurricanes?
+
+In the past summer, there were two major and devastating category 4 hurricanes in the US. People in Central America, Texas, Louisiana and other states lost their shelter and loved ones from Hurricane. Hurricane Irma soon after attacked as a ruining the coast of Florida. We wanted to see if this was indicative of the future. Because of the severity of the destruction from the category 4 hurricanes we are looking at the average wind speed of hurricanes. Then, because of how quickly Hurricane Irma came after Hurricane Harvey, we decided to look at the frequency to see how many time we should expect hurricanes per year. Finally, we are looking at the average durations of the hurricanes. For example, Hurricane Harvey lasted for 17 days and we wanted to see if the durations of these devastations can be modeled. Looking at the wind speed, frequency, and durations of past hurricanes, we may be able to predict future hurricanes and be more prepared for them.
+>>>>>>> da9dffa7cb220db7c7ef9ed54b3d31147e2e401a
 
 ## The Datasets
 
 To measure climate changes, we looked at four different data sets. The first data set is our main data set on hurricanes, provided by the homeland infrastructure foundation level data committee. This dataset recorded the hurricane’s wind speed, dates of occurrence, location, pressure, and the category of the hurricane. 
-```{r}
+Our indicator variables are temperature anomalies provided by NASA, CO2 provided by the national oceanic and atmospheric administration, and the North Atlantic Oscillation Index or NAOI which is provided by the national center for atmospheric research.
+C02 concentration showed fluctuation throughout the years because when plants are growing, photosynthesis outweighs respiration. As a result, plants take more CO2 out of the atmosphere during the warm months when they are growing the most. This can lead to noticeably lower CO2 concentrations in the atmosphere. Respiration occurs all the time, but dominates during the colder months of the year, resulting in higher CO2 levels in the atmosphere during those months.
 
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+Average <- ts(CO2$average, frequency = 12, start = 1980)
+ggplot(CO2, aes(Date, Average)) + geom_line()+xlab("Year")+ylab("C02 concentration")
 ```
-Our indicator variables are temperature anomalies provided by NASA, CO2 provided by the national oceanic and atmospheric administration, and the North Atlantic Oscillation Index or NAOI which is provided by the national center for atmospheric research. 
-The temperature anomalies are the difference from the temperature at the time from the baseline temperature, which is created from an average of 30 years of temperature data. 
+
+The temperature anomalies are the difference from the temperature at the time from the baseline temperature, which is created from an average of 30 years of temperature data. We used temperatures because absolute temperatures, or actual temeperatures measured in current time is more prone to extraneous variables such as the temeprature measurement tower, wherease temperature anomaly are not as affected by these extraneous variables.
+
+```{r echo=FALSE}
+# plot of temperature anomaly by year
+ggplot(temp_recent,aes(x=Year))+
+  geom_line(aes(y=NHem))+
+  ylab("Temperature Anomolies")+
+  geom_smooth(method='lm', aes(Year,NHem), size=0.5, se=FALSE)
+```
+
 NAOI is the fluctuations in the difference of atmospheric pressure at sea level (SLP) in the Northern Atlantic ocean.
 
-## What is MCMC?
+```{r message=FALSE, warning=FALSE}
+# remove 2017 (data for year is incomplete)
+NAO_index <- head(NAO_index, -1) 
 
+# group by month
+NAO_avgMonth <- aggregate(NAO_index[, 3], list(NAO_index$month), mean)
+
+# plot
+ggplot(data = NAO_avgMonth, aes(x = Group.1, y = x)) + geom_point(color = "blue") + xlab("Months") + ylab("NAO index")
+```
+
+## What is a Markov Chain?
+
+<<<<<<< HEAD
 For all our models we ran Markov chains in order to simulate the posterior results after running our models in rjags.
 
 ## Creating Our Models
@@ -158,18 +177,182 @@ For our first model, we tried to model hurricane severity over time using the NA
 We used a normal-normal model to attempt to model wind speed with CO2 and NAO over time. The normal-normal model is called that because both the prior and posterior distributions of the data are normally distributed. All of the priors for this model are vague because, prior to creating and running our models, we didn't know much about the impact of NAO or CO2 on hurricane wind speed.
 
 ### Hurricane Frequency
+=======
+A Markov Chain is a chain of approximated values where one value is predicted by the value just prior to it.
+
+## Creating Our Models
+
+In order to answer four different research questions, we decided to used two different Bayesian modeling: A normal-normal model and Poisson regression model. A normal-normal model assumes a normal distribution, or a "bell curve", which the density curve described by its mean and standard deviation, for both the prior and the hyperpriors. A Poisson regression model, 
+>>>>>>> da9dffa7cb220db7c7ef9ed54b3d31147e2e401a
 
 Our second and third models attempt to show a relationship between CO2, NAO, and the frequency of hurricanes over time. 
 
+```{r echo=FALSE}
+# Average max wind speed by year
+hurricanes_wind <- group_by(recent_hurricanes, YEAR) %>%
+  summarize(mean(WIND_KTS))
+colnames(hurricanes_wind)[2] <- "AVG_WIND"
+ggplot(hurricanes_wind, aes(x = YEAR, y = AVG_WIND)) + geom_point() + ylab("Average wind speed (kts)")
+```
+
+Using the normal-normal model, we modeled hurricane wind speed using C02 concentration and NAO index. We ran 50000 itreations of the Markov Chain and found that this model was not very good at modeling hurricane severity.
+
+
+### Hurricane Frequency
+
+```{r include=FALSE}
+# Adding zones to the temperature data and limiting time interval to between 1950-2008.
+temp_data<-na.omit(temp_data) %>%  filter(1950 <= Year) %>%
+  filter(Year <= 2008)
+my_temp <- subset(temp_data, select = c("Year", "EQU-24N", "24N-44N", "44N-64N", "64N-90N"))
+colnames(my_temp) <- c("Year", "EQUtoN24", "N24to44", "N44to64", "N64to90")
+my_temp <- melt(my_temp, id=c("Year"))
+colnames(my_temp) <- c("year", "zone", "temp")
+
+# Divide hurricane dataset by zones
+hurricanes_zones <- hurricane_locations %>% 
+  mutate(zone=cut(lat, breaks=c(0, 24, 44, 64, 90), labels=c( "EQUtoN24", "N24to44", "N44to64","N64to90"))) %>%
+  group_by(year, zone)  %>%
+  summarise(total = n())
+
+# Combine the  hurricane and temperature dataset together
+hurricanes_per_zone <- merge(my_temp, hurricanes_zones, by = c("year", "zone"), all.x = TRUE, all.y = TRUE)
+hurricanes_per_zone[is.na(hurricanes_per_zone)] <- 0
+```
+
+```{r echo=FALSE}
+# Total number of hurricanes per year
+hurricanes_per_year <- group_by(recent_hurricanes, YEAR) %>%
+  summarize(length(unique(NAME)))
+colnames(hurricanes_per_year)[2] <- "TOTAL_HURRICANES"
+ggplot(hurricanes_per_year, aes(x = YEAR, y = TOTAL_HURRICANES)) + geom_point()+xlab("Year")+ylab("Total Number of Hurricanes")+theme(axis.title = element_text(size=20))
+```
+
+In the plot above, we can see that the frequency of hurricanes generally increase throughout the years. To model the hurricane frequency per year we first used a Poisson regression model incorporating C02 concentration and NAO index. 
+
+```{r echo=FALSE}
+head(hurricanes_per_year_clean)
+
+hur_mod <- " model {
+  for (i in 1:length(TOTAL_H)) {
+      TOTAL_H[i] ~ dpois(lam[i])
+      log(lam[i]) = beta0 + beta1*X1[i] + beta2*X2[i]
+  }
+
+  beta0 ~ dnorm(0.0, 1.0/1e6)
+  beta1 ~ dnorm(0.0, 1.0/1e4)
+  beta2 ~ dnorm(0.0, 1.0/1e4)
+} "
+
+# set up an algorithm to simulate the posterior by combining the model and data (x)
+# set the random number seed
+
+data_jags = as.list(hurricanes_per_year_clean[,2:5])
+str(data_jags)
+
+#freq_jags <- jags.model(textConnection(hur_mod),data=list(TOTAL_H = hurricanes_per_year_clean$TOTAL_H, X1 = hurricanes_per_year_clean$temp, X2 = hurricanes_per_year_clean$avg_CO2,X3 = hurricanes_per_year_clean$avg_NAO), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=2000))
+
+# manually initialize parameters
+freq_jags <- jags.model(textConnection(hur_mod),data=list(TOTAL_H = hurricanes_per_year_clean$TOTAL_H, X1 = hurricanes_per_year_clean$avg_CO2,X2 = hurricanes_per_year_clean$avg_NAO), inits=list(beta0=5,beta1=0, beta2=0))
+
+# simulate a sample from the posterior
+# note that we specify both mu and tau variables
+freq_sim <- coda.samples(freq_jags, variable.names = c("beta0", "beta1", "beta2"), n.iter=5000)
+
+# store the samples in a data frame:
+freq_sample <- data.frame(step = 1:5000, freq_sim[[1]])
+head(freq_sample, 10)
+
+
+# make a dataframe of parameter values every other step to make plotting faster
+Nth.delete<-function(dataframe, n)dataframe[-(seq(n,to=nrow(dataframe),by=n)),]
+freq_sample_small <- Nth.delete(freq_sample, 2)
+```
+
 ### Hurricane Duration
 
+<<<<<<< HEAD
 Our final model attempted to model the duration of the hurricane w
+=======
+```{r echo=FALSE}
+# Hurricane data only looking at Date and name
+hurricane_time<-subset(recent_hurricanes, select = c(NAME,YEAR,MONTH,DAY))
+
+#Group data by year and name and subtracting starting time from end time for each hurricane (duration)
+foo <- hurricane_time %>%
+  group_by(YEAR, NAME) %>%
+  mutate(date = as.Date(paste(YEAR, MONTH, DAY, sep='-')), "%Y-%m-%d") %>%
+  summarise(duration = max(date) - min(date))
+
+#removed outlier
+foo<-foo[!(foo$YEAR==1954 & foo$NAME=="ALICE"),]
+
+# Averaging duration per year
+foo<-group_by(foo, YEAR)%>%
+  summarise(mean(duration))
+# Name second column of data as Average_Duration
+colnames(foo)[2] <- "duration"
+colnames(foo)[1]<-"year"
+#create durations with temperature data, CO2 data, NAOI data and frequency data
+durations <- merge(foo, hurricanes_per_zone, by = c("year"), all.x = TRUE, all.y = TRUE)
+ggplot(foo,aes(x=YEAR, y=Average_Duration))+
+  geom_line()
+```
+
+In order to model average duration of hurricanes, we decided to use normal-normal model using zone categories and temperature anomalies. First, we decided to use these two variables because location seemed to have a higher correlation to hurricanes than C02 and the NAO index. Also, we decided on a normal-normal model because, the durations are not all at a constant rate depending on the hurricanes. The model seemed to be broad enough to incorporate the variability of hurricane durations.
+
+$$Y_t \sim N(\beta_0+\beta_1X_{1t}+\beta_2(X_{2t}), \tau^{-1})$$
+$$\beta_0\sim N(0, 100^2)$$
+$$\beta_1\sim N(0, 100^2)$$
+$$\beta_2\sim N(0, 100^2)$$
+$$\tau\sim \Gamma(0.001, 0.001)$$
+
+```{r echo=FALSE}
+library(rjags)
+
+#specify the model
+duration_model <- "model{
+    #Data
+    for(i in 1:length(y)) {
+        y[i] ~ dnorm(beta0 + beta1*X1[i] + beta2[X2[i]],tau)
+    }
+
+    #Priors
+    beta0 ~ dnorm(0.0, 1.0/1e4)
+    beta1 ~ dnorm(0.0, 1.0/1e4)
+    beta2[1] <- 0
+    for (i in 2:4) {
+      beta2[i] ~ dnorm(0.0, 1.0/1e4)
+  }
+    tau ~ dgamma(.001, .001)
+}"
+
+
+
+duration_jags <- jags.model(textConnection(duration_model), data=list(y = durations$duration, X1 = durations$temp, X2 = durations$zone), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
+
+
+
+duration_sim <- coda.samples(duration_jags, variable.names=c("beta0","beta1", "beta2","tau"), n.iter=10000)
+
+
+   
+duration_samples <- data.frame(duration_sim[[1]])
+plot(duration_sim)
+```
+
+>>>>>>> da9dffa7cb220db7c7ef9ed54b3d31147e2e401a
 
 ## Conclusion
 
 
 
 ## References
+
+* 
+*
+*Martyn Plummer (2016). rjags: Bayesian Graphical Models using MCMC. R package version 4-6.
+  https://CRAN.R-project.org/package=rjags
 
 ## Appendix
 
@@ -293,6 +476,35 @@ head(hurricanes_per_year_clean)
 
 ### Markov Chain for Windspeed
 
+```{r eval=FALSE}
+# specify the model
+windSpeed_model <- "model{
+    #Data
+    for(i in 1:length(y)) {
+        y[i] ~ dnorm(beta0 + beta1*x1[i] + beta2*x2[i], tau)
+
+    }
+    #Priors
+    beta0 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta1 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta2 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    tau ~ dgamma(0.001, 0.001)
+
+}"
+
+#*set up an algorithm to simulate the posterior by
+#*combining the model (games_model) and data (x)
+#*set the random number seed
+windSpeed_jags <- jags.model(textConnection(windSpeed_model),data=list(y=HURRICANES$avg_windspeed,x1=HURRICANES$avg_CO2,x2=HURRICANES$avg_NAO), inits = list(beta0 = 5, beta1 = 0, beta2 = 0))
+
+#*simulate a sample from the posterior
+#*note that we specify both mu and tau variables
+windSpeed_sim <- coda.samples(windSpeed_jags, variable.names=c("beta0","beta1","beta2"), n.iter=500000)
+
+
+#*store the samples in a data frame:
+windSpeed_sample <- data.frame(step=1:500000, windSpeed_sim[[1]])
+```
 
 ### Markov Chains for Frequency
 
@@ -300,7 +512,6 @@ head(hurricanes_per_year_clean)
 
 ```{r eval=FALSE}
 # Adding zones to the temperature data and limiting time interval to between 1950-2008.
-temp_data <- read_csv("ZonAnn.csv")
 temp_data<-na.omit(temp_data) %>%  filter(1950 <= Year) %>%
   filter(Year <= 2008)
 my_temp <- subset(temp_data, select = c("Year", "EQU-24N", "24N-44N", "44N-64N", "64N-90N"))
@@ -329,7 +540,44 @@ hurricanes_per_zone[is.na(hurricanes_per_zone)] <- 0
 
 #### Using CO2 and NAOI
 
+```{r eval=FALSE}
+head(hurricanes_per_year_clean)
 
+hur_mod <- " model {
+  for (i in 1:length(TOTAL_H)) {
+      TOTAL_H[i] ~ dpois(lam[i])
+      log(lam[i]) = beta0 + beta1*X1[i] + beta2*X2[i]
+  }
+
+  beta0 ~ dnorm(0.0, 1.0/1e6)
+  beta1 ~ dnorm(0.0, 1.0/1e4)
+  beta2 ~ dnorm(0.0, 1.0/1e4)
+} "
+
+# set up an algorithm to simulate the posterior by combining the model and data (x)
+# set the random number seed
+
+data_jags = as.list(hurricanes_per_year_clean[,2:5])
+str(data_jags)
+
+#freq_jags <- jags.model(textConnection(hur_mod),data=list(TOTAL_H = hurricanes_per_year_clean$TOTAL_H, X1 = hurricanes_per_year_clean$temp, X2 = hurricanes_per_year_clean$avg_CO2,X3 = hurricanes_per_year_clean$avg_NAO), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=2000))
+
+# manually initialize parameters
+freq_jags <- jags.model(textConnection(hur_mod),data=list(TOTAL_H = hurricanes_per_year_clean$TOTAL_H, X1 = hurricanes_per_year_clean$avg_CO2,X2 = hurricanes_per_year_clean$avg_NAO), inits=list(beta0=5,beta1=0, beta2=0))
+
+# simulate a sample from the posterior
+# note that we specify both mu and tau variables
+freq_sim <- coda.samples(freq_jags, variable.names = c("beta0", "beta1", "beta2"), n.iter=500000)
+
+# store the samples in a data frame:
+freq_sample <- data.frame(step = 1:500000, freq_sim[[1]])
+head(freq_sample, 10)
+
+
+# make a dataframe of parameter values every other step to make plotting faster
+Nth.delete<-function(dataframe, n)dataframe[-(seq(n,to=nrow(dataframe),by=n)),]
+freq_sample_small <- Nth.delete(freq_sample, 2)
+```
 
 #### Using Teperature and Zone cateogories
 
@@ -386,7 +634,6 @@ colnames(foo)[2] <- "duration"
 colnames(foo)[1]<-"year"
 #create durations with temperature data, CO2 data, NAOI data and frequency data
 durations <- merge(foo, hurricanes_per_zone, by = c("year"), all.x = TRUE, all.y = TRUE)
-
 ```
 
 #### Running the model
