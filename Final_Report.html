@@ -126,28 +126,29 @@ $(document).ready(function () {
 </div>
 <div id="december-17-2017" class="section level4">
 <h4>December 17, 2017</h4>
-<p>Loading the data…</p>
-<p>In the past summer, there were two major and devastating category 4 hurricanes in the US. Peoplel in Central America, Texas, Louisiana and other states lost their shelter and loved ones from Hurricane. Hurricane Irma soon after attacked as a ruining the coast of Florida. We wanted to see if this was indicative of the future and see if</p>
+<p>In the past summer, there were two major and devastating category 4 hurricanes in the US. People in Central America, Texas, Louisiana and other states lost their shelter and loved ones from Hurricane. Hurricane Irma soon after attacked as a ruining the coast of Florida. We wanted to see if this was indicative of the future. Because of the severity of the destruction from the category 4 hurricanes we are looking at the average wind speed of hurricanes. Then, because of how quickly Hurricane Irma came after Hurricane Harvey, we decided to look at the frequency to see how many time we should expect hurricanes per year. Finally, we are looking at the average durations of the hurricanes. For example, Hurricane Harvey lasted for 17 days and we wanted to see if the durations of these devastations can be modeled. Looking at the wind speed, frequency, and durations of past hurricanes, we may be able to predict future hurricanes and be more prepared for them.</p>
 </div>
 <div id="the-datasets" class="section level2">
 <h2>The Datasets</h2>
-<p>To measure climate changes, we looked at four different data sets. The first data set is our main data set on hurricanes, provided by the homeland infrastructure foundation level data committee. This dataset recorded the hurricane’s wind speed, dates of occurrence, location, pressure, and the category of the hurricane.</p>
-<p>Our indicator variables are temperature anomalies provided by NASA, CO2 provided by the national oceanic and atmospheric administration, and the North Atlantic Oscillation Index or NAOI which is provided by the national center for atmospheric research. The temperature anomalies are the difference from the temperature at the time from the baseline temperature, which is created from an average of 30 years of temperature data. NAOI is the fluctuations in the difference of atmospheric pressure at sea level (SLP) in the Northern Atlantic ocean.</p>
+<p>To measure climate changes, we looked at four different data sets. The first data set is our main data set on hurricanes, provided by the homeland infrastructure foundation level data committee. This dataset recorded the hurricane’s wind speed, dates of occurrence, location, pressure, and the category of the hurricane. Our indicator variables are temperature anomalies provided by NASA, CO2 provided by the national oceanic and atmospheric administration, and the North Atlantic Oscillation Index or NAOI which is provided by the national center for atmospheric research. The temperature anomalies are the difference from the temperature at the time from the baseline temperature, which is created from an average of 30 years of temperature data. NAOI is the fluctuations in the difference of atmospheric pressure at sea level (SLP) in the Northern Atlantic ocean.</p>
 </div>
-<div id="what-is-mcmc" class="section level2">
-<h2>What is MCMC?</h2>
-<p>For all models we decided to run Markov chains to</p>
+<div id="what-is-a-markov-chain" class="section level2">
+<h2>What is a Markov Chain?</h2>
+<p>A Markov Chain is a chain of approximated values where one value is predicted by the value just prior to it.</p>
 </div>
 <div id="creating-our-models" class="section level2">
 <h2>Creating Our Models</h2>
-<div id="hurricane-frequency" class="section level3">
-<h3>Hurricane Frequency</h3>
-</div>
+<p>In order to answer four different research questions, we decided to used two different Bayesian modeling: A normal-normal model and Poisson regression model. A normal-normal model assumes a normal distribution, or a “bell curve”, which the density curve described by its mean and standard deviation, for both the prior and the hyperpriors. A Poisson regression model,</p>
 <div id="hurricane-windspeed" class="section level3">
 <h3>Hurricane Windspeed</h3>
 </div>
+<div id="hurricane-frequency" class="section level3">
+<h3>Hurricane Frequency</h3>
+<p>In the plot above, we can see that the frequency of hurricanes generally increase throughout the years. To model the hurricane frequency per year we first used a Poisson regression model incorporating C02 concentration and NAO index.</p>
+</div>
 <div id="hurricane-duration" class="section level3">
 <h3>Hurricane Duration</h3>
+<p>In order to model average duration of hurricanes, we decided to use normal-normal model using zone categories and temperature anomalies. First, we decided to use these two variables because location seemed to have a higher correlation to hurricanes than C02 and the NAO index. Also, we decided on a normal-normal model because, the durations are not all at a constant rate depending on the hurricanes. The model seemed to be broad enough to incorporate the variability of hurricane durations.</p>
 </div>
 </div>
 <div id="conclusion" class="section level2">
@@ -155,6 +156,11 @@ $(document).ready(function () {
 </div>
 <div id="references" class="section level2">
 <h2>References</h2>
+<ul>
+<li></li>
+<li></li>
+<li></li>
+</ul>
 </div>
 <div id="appendix" class="section level2">
 <h2>Appendix</h2>
