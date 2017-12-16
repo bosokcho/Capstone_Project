@@ -114,8 +114,6 @@ windspeed_yr <- hurricane_data %>%
 hurricanes_per_year_clean <- merge(x = hurricanes_per_year_clean, y = windspeed_yr, by = "YEAR", all.x = TRUE)
 
 head(hurricanes_per_year_clean)
-
-head(hurricanes_per_year_clean)
 ```
 In the past summer, there were two major and devastating category 4 hurricanes in the US. People in Central America, Texas, Louisiana and other states lost security and loved ones from the hurricanes. Hurricane Irma soon after attacked as a ruining the coast of Florida. 
 
@@ -174,6 +172,52 @@ For all our models we ran Markov chains in order to simulate the posterior resul
 For our first model, we tried to model hurricane severity over time using the NAO index and average atmospheric CO2 levels (we removed average ocean temperature from our model because it was collinear with CO2). The variable we used to indicate hurricane severity was wind speed, since the highest windspeed of a hurricane is what is used to categorize it.
 
 We used a normal-normal model to attempt to model wind speed with CO2 and NAO over time. The normal-normal model is called that because both the prior and posterior distributions of the data are normally distributed. All of the priors for this model are vague because, prior to creating and running our models, we didn't know much about the impact of NAO or CO2 on hurricane wind speed.
+
+```{r}
+
+library(ggplot2)
+ggplot(hurricanes_per_year_clean,aes(x=YEAR, y=avg_windspeed))+
+  labs(x = "Year", y = "Average wind speed")+
+  geom_point()
+
+```
+
+```{r}
+# specify the model
+windSpeed_model <- "model{
+    #Data
+    for(i in 1:length(y)) {
+        y[i] ~ dnorm(beta0 + beta1*x1[i] + beta2*x2[i], tau)
+
+    }
+    #Priors
+    beta0 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta1 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta2 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    tau ~ dgamma(0.001, 0.001)
+
+}"
+
+#*set up an algorithm to simulate the posterior by
+#*combining the model (games_model) and data (x)
+#*set the random number seed
+windSpeed_jags <- jags.model(textConnection(windSpeed_model),data=list(y=HURRICANES$avg_windspeed,x1=HURRICANES$avg_CO2,x2=HURRICANES$avg_NAO), inits = list(beta0 = 5, beta1 = 0, beta2 = 0))
+
+#*simulate a sample from the posterior
+#*note that we specify both mu and tau variables
+windSpeed_sim <- coda.samples(windSpeed_jags, variable.names=c("beta0","beta1","beta2"), n.iter=500000)
+
+
+#*store the samples in a data frame:
+windSpeed_sample <- data.frame(step=1:500000, windSpeed_sim[[1]])
+```
+
+```{r}
+
+plot(windSpeed_sim)
+summary(windSpeed_sim)
+
+```
 
 ### Hurricane Frequency
 
@@ -470,7 +514,22 @@ hurricanes_per_year_clean <- merge(x = hurricanes_per_year_clean, y = windspeed_
 head(hurricanes_per_year_clean)
 ```
 
-### Markov Chain for Windspeed
+### Markov Chain for Wind speed
+
+#### Create data set for wind speed and merge with previous data set
+
+```{r}
+
+# Wind speed data
+# Create new data set with windspeed and year
+windspeed_yr <- hurricane_data %>%
+  group_by(YEAR) %>%
+  summarise(avg_windspeed = mean(WIND_KTS))
+
+# Merge this with the other data set
+hurricanes_per_year_clean <- merge(x = hurricanes_per_year_clean, y = windspeed_yr, by = "YEAR", all.x = TRUE)
+
+```
 
 ```{r eval=FALSE}
 # specify the model
