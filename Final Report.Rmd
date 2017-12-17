@@ -9,10 +9,8 @@ library(tidyr)
 library(ggplot2)
 library(zoo)
 library(lubridate)
-library(ggmap)
 library(reshape2)
 library(MASS)
-library(viridis)
 library(rjags)
 library(MacBayes)
 ```
@@ -185,8 +183,7 @@ In order to answer four different research questions, we decided to use two diff
 
 We first modeled the hurricane wind speed through time to see if there were any obvious trends throughout the years.
 
-<<<<<<< HEAD
-=======
+
 ```{r}
 
 library(ggplot2)
@@ -669,10 +666,25 @@ Future Research we can look at is to allow for the interactions between zones an
 
 ## References
 
-* 
-*
+*Achim Zeileis and Gabor Grothendieck (2005). zoo: S3 Infrastructure for Regular and Irregular Time Series.
+  Journal of Statistical Software, 14(6), 1-27. doi:10.18637/jss.v014.i06
+*Alicia Johnson (NA). MacBayes: Introductory Bayesian toolkit. R package version 0.0.0.9000.
+*Garrett Grolemund, Hadley Wickham (2011). Dates and Times Made Easy with lubridate. Journal of Statistical
+  Software, 40(3), 1-25. URL http://www.jstatsoft.org/v40/i03/.
+*H. Wickham. ggplot2: Elegant Graphics for Data Analysis. Springer-Verlag New York, 2009.
+*Hadley Wickham (2007). Reshaping Data with the reshape Package. Journal of Statistical Software, 21(12), 1-20.
+  URL http://www.jstatsoft.org/v21/i12/.
+*Hadley Wickham, Jim Hester and Romain Francois (2017). readr: Read Rectangular Text Data. R package version
+  1.1.1. https://CRAN.R-project.org/package=readr
+*Hadley Wickham and Lionel Henry (2017). tidyr: Easily Tidy Data with 'spread()' and 'gather()' Functions. R
+  package version 0.7.2. https://CRAN.R-project.org/package=tidyr
+*Hadley Wickham, Romain Francois, Lionel Henry and Kirill Müller (2017). dplyr: A Grammar of Data Manipulation. R
+  package version 0.7.4. https://CRAN.R-project.org/package=dplyr
 *Martyn Plummer (2016). rjags: Bayesian Graphical Models using MCMC. R package version 4-6.
   https://CRAN.R-project.org/package=rjags
+*Venables, W. N. & Ripley, B. D. (2002) Modern Applied Statistics with S. Fourth Edition. Springer, New York. ISBN
+  0-387-95457-0
+
 
 ## Appendix
 
@@ -685,10 +697,8 @@ library(tidyr)
 library(ggplot2)
 library(zoo)
 library(lubridate)
-library(ggmap)
 library(reshape2)
 library(MASS)
-library(viridis)
 library(rjags)
 library(MacBayes)
 ```
