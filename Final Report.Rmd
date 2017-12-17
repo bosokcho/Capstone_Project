@@ -130,8 +130,6 @@ windspeed_yr <- hurricane_data %>%
 hurricanes_per_year_clean <- merge(x = hurricanes_per_year_clean, y = windspeed_yr, by = "YEAR", all.x = TRUE)
 
 head(hurricanes_per_year_clean)
-
-head(hurricanes_per_year_clean)
 ```
 
 
@@ -187,6 +185,64 @@ In order to answer four different research questions, we decided to use two diff
 
 We first modeled the hurricane wind speed through time to see if there were any obvious trends throughout the years.
 
+<<<<<<< HEAD
+=======
+```{r}
+
+library(ggplot2)
+ggplot(hurricanes_per_year_clean,aes(x=YEAR, y=avg_windspeed))+
+  labs(x = "Year", y = "Average wind speed")+
+  geom_point()
+
+```
+
+```{r}
+# specify the model
+windSpeed_model <- "model{
+    #Data
+    for(i in 1:length(y)) {
+        y[i] ~ dnorm(beta0 + beta1*x1[i] + beta2*x2[i], tau)
+
+    }
+    #Priors
+    beta0 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta1 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    beta2 ~ dnorm(0, 1/(1000)^2) #PRECISION
+    tau ~ dgamma(0.001, 0.001)
+
+}"
+
+#*set up an algorithm to simulate the posterior by
+#*combining the model (games_model) and data (x)
+#*set the random number seed
+windSpeed_jags <- jags.model(textConnection(windSpeed_model),data=list(y=HURRICANES$avg_windspeed,x1=HURRICANES$avg_CO2,x2=HURRICANES$avg_NAO), inits = list(beta0 = 5, beta1 = 0, beta2 = 0))
+
+#*simulate a sample from the posterior
+#*note that we specify both mu and tau variables
+windSpeed_sim <- coda.samples(windSpeed_jags, variable.names=c("beta0","beta1","beta2"), n.iter=500000)
+
+
+#*store the samples in a data frame:
+windSpeed_sample <- data.frame(step=1:500000, windSpeed_sim[[1]])
+```
+
+```{r}
+
+plot(windSpeed_sim)
+summary(windSpeed_sim)
+
+```
+
+### Hurricane Frequency
+
+A Markov Chain is a chain of approximated values where one value is predicted by the value just prior to it.
+
+## Creating Our Models
+
+In order to answer four different research questions, we decided to used two different Bayesian modeling: A normal-normal model and Poisson regression model. A normal-normal model assumes a normal distribution, or a "bell curve", which the density curve described by its mean and standard deviation, for both the prior and the hyperpriors. A Poisson regression model, 
+
+Our second and third models attempt to show a relationship between CO2, NAO, and the frequency of hurricanes over time. 
+>>>>>>> d8d89f02483ffaaeaa1567711e5bc45190f45888
 
 ```{r echo=FALSE}
 # Average max wind speed by year
@@ -738,6 +794,24 @@ head(hurricanes_per_year_clean)
 ```
 
 ### Markov Chain for Wind speed
+<<<<<<< HEAD
+=======
+
+#### Create data set for wind speed and merge with previous data set
+
+```{r}
+
+# Wind speed data
+# Create new data set with windspeed and year
+windspeed_yr <- hurricane_data %>%
+  group_by(YEAR) %>%
+  summarise(avg_windspeed = mean(WIND_KTS))
+
+# Merge this with the other data set
+hurricanes_per_year_clean <- merge(x = hurricanes_per_year_clean, y = windspeed_yr, by = "YEAR", all.x = TRUE)
+
+```
+>>>>>>> d8d89f02483ffaaeaa1567711e5bc45190f45888
 
 ```{r eval=FALSE}
 # specify the model
