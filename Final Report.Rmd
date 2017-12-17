@@ -2,7 +2,7 @@
 #### By: Madeline Abbott, Aidan Teppema, Daisy Cho
 #### December 17, 2017
 
-```{r echo=FALSE}
+```{r include=FALSE}
 library(readr)
 library(dplyr)
 library(tidyr)
@@ -13,7 +13,6 @@ library(ggmap)
 library(reshape2)
 library(MASS)
 library(viridis)
-#library(shiny)
 library(rjags)
 library(MacBayes)
 ```
@@ -37,13 +36,30 @@ hurricanes_per_basin <- recent_hurricanes %>%
   group_by(BASIN) %>%
   summarise(TOTAL_H = n_distinct(NAME, DAY))
 
+#Format Coordinates
+dat<-as.character(recent_hurricanes$LAT)
+new<-substr(dat,1,nchar(dat))
+lat<-as.numeric(new)
+dat<-as.character(recent_hurricanes$LONG)
+new<-substr(dat,1,nchar(dat))
+long<-as.numeric(new)
+long<- -abs(long)
+coord<-as.data.frame(long)
+#Add year and name
+year<-as.character(recent_hurricanes$YEAR)
+name<-as.character(recent_hurricanes$NAME)
+hurricane_locations<-cbind(year, name, coord, lat)
+
+
 # Temperature Data
-temp_data <- read.csv("ZonAnn.csv")
+temp_data_orig <- read.csv("ZonAnn.csv")
+temp_data <- temp_data_orig
 temp_data[!complete.cases(temp_data),]
 temp_data<-na.omit(temp_data)
 temp_data<-temp_data[,-(5:15),drop=FALSE]
 temp_recent <- temp_data %>%
   filter(Year > 1949)
+
 # select only northern hemisphere temp data
 tempN <- subset(temp_recent, select = c(Year, NHem))
 # rename the columns
@@ -117,9 +133,6 @@ head(hurricanes_per_year_clean)
 
 head(hurricanes_per_year_clean)
 ```
-In the past summer, there were two major and devastating category 4 hurricanes in the US. People in Central America, Texas, Louisiana and other states lost security and loved ones from the hurricanes. Hurricane Irma soon after attacked as a ruining the coast of Florida. 
-
-We wanted to see if this increased number and severity of hurricanes are indicative of a trend and if we could predict if this trend would continue into the future.
 
 
 ## Why Hurricanes?
@@ -131,7 +144,15 @@ In the past summer, there were two major and devastating category 4 hurricanes i
 
 To measure climate changes, we looked at four different data sets. The first data set is our main data set on hurricanes, provided by the homeland infrastructure foundation level data committee. This dataset recorded the hurricane’s wind speed, dates of occurrence, location, pressure, and the category of the hurricane. 
 Our indicator variables are temperature anomalies provided by NASA, CO2 provided by the national oceanic and atmospheric administration, and the North Atlantic Oscillation Index or NAOI which is provided by the national center for atmospheric research.
-C02 concentration showed fluctuation throughout the years because when plants are growing, photosynthesis outweighs respiration. As a result, plants take more CO2 out of the atmosphere during the warm months when they are growing the most. This can lead to noticeably lower CO2 concentrations in the atmosphere. Respiration occurs all the time, but dominates during the colder months of the year, resulting in higher CO2 levels in the atmosphere during those months.
+```{r echo=FALSE}
+# plot of temperature anomaly by year
+ggplot(temp_recent,aes(x=Year))+
+  geom_line(aes(y=NHem))+
+  ylab("Temperature Anomalies")+
+  geom_smooth(method='lm', aes(Year,NHem), size=0.5, se=FALSE)
+```
+
+The temperature anomalies are the difference from the temperature at the time from the baseline temperature, which is created from an average of 30 years of temperature data. We used temperatures because absolute temperatures, or actual temperatures measured in current time is more prone to extraneous variables such as the temperature measurement tower, whereas temperature anomaly are not as affected by these extraneous variables.
 
 ```{r message=FALSE, warning=FALSE, echo=FALSE}
 CO2$Date <- as.yearmon(paste(CO2$year, CO2$month), "%Y %m")
@@ -139,19 +160,9 @@ Average <- ts(CO2$average, frequency = 12, start = 1980)
 ggplot(CO2, aes(Date, Average)) + geom_line()+xlab("Year")+ylab("C02 concentration")
 ```
 
-The temperature anomalies are the difference from the temperature at the time from the baseline temperature, which is created from an average of 30 years of temperature data. We used temperatures because absolute temperatures, or actual temeperatures measured in current time is more prone to extraneous variables such as the temeprature measurement tower, wherease temperature anomaly are not as affected by these extraneous variables.
+CO2 also shows an increasing throughout the years. CO2 concentration showed fluctuation throughout the years because when plants are growing, photosynthesis outweighs respiration. As a result, plants take more CO2 out of the atmosphere during the warm months when they are growing the most. This can lead to noticeably lower CO2 concentrations in the atmosphere. Respiration occurs all the time, but dominates during the colder months of the year, resulting in higher CO2 levels in the atmosphere during those months.`
 
-```{r echo=FALSE}
-# plot of temperature anomaly by year
-ggplot(temp_recent,aes(x=Year))+
-  geom_line(aes(y=NHem))+
-  ylab("Temperature Anomolies")+
-  geom_smooth(method='lm', aes(Year,NHem), size=0.5, se=FALSE)
-```
-
-NAOI is the fluctuations in the difference of atmospheric pressure at sea level (SLP) in the Northern Atlantic ocean.
-
-```{r message=FALSE, warning=FALSE}
+```{r message=FALSE, warning=FALSE, echo=FALSE}
 # remove 2017 (data for year is incomplete)
 NAO_index <- head(NAO_index, -1) 
 
@@ -161,28 +172,21 @@ NAO_avgMonth <- aggregate(NAO_index[, 3], list(NAO_index$month), mean)
 # plot
 ggplot(data = NAO_avgMonth, aes(x = Group.1, y = x)) + geom_point(color = "blue") + xlab("Months") + ylab("NAO index")
 ```
+NAOI is the fluctuations in the difference of atmospheric pressure at sea level (SLP) in the Northern Atlantic ocean. High levels influences the rise of sea levels and the direction of tropical storm cyclones
 
 ## What is a Markov Chain?
 
 
-For all our models we ran Markov chains in order to simulate the posterior results after running our models in rjags.A Markov Chain is a chain of approximated values where one value is predicted by the value just prior to it.
-
+For all our models we ran Markov chains in order to simulate the posterior results after running our models in rjags. A Markov chain is an approximation of values using our prior understanding of the quantity or relationship and the provided dataset. It is used to generate a sequence of values just from the value prior to it.
 
 ## Creating Our Models
-In order to answer four different research questions, we decided to used two different Bayesian modeling: A normal-normal model and Poisson regression model. A normal-normal model assumes a normal distribution, or a "bell curve", which the density curve described by its mean and standard deviation, for both the prior and the hyperpriors. A Poisson regression model, 
-### Hurricane Windspeed
 
-For our first model, we tried to model hurricane severity over time using the NAO index and average atmospheric CO2 levels (we removed average ocean temperature from our model because it was collinear with CO2). The variable we used to indicate hurricane severity was wind speed, since the highest windspeed of a hurricane is what is used to categorize it.
+In order to answer four different research questions, we decided to use two different Bayesian modeling: A normal-normal model and Poisson regression model. A normal-normal model assumes a normal distribution, or a "bell curve", which the density curve described by its mean and standard deviation, for both the prior and the posterior. A Poisson regression model, uses a Poisson distribution, which expresses the probability of a given number of events occurring in a fixed interval of time if these events occur with a known constant rate, and assumes that the log of the expect value or also mean can be modeled by unknown parameters.
 
-We used a normal-normal model to attempt to model wind speed with CO2 and NAO over time. The normal-normal model is called that because both the prior and posterior distributions of the data are normally distributed. All of the priors for this model are vague because, prior to creating and running our models, we didn't know much about the impact of NAO or CO2 on hurricane wind speed.
+### Hurricane Wind speed
 
-### Hurricane Frequency
+We first modeled the hurricane wind speed through time to see if there were any obvious trends throughout the years.
 
-
-
-
-
-Our second and third models attempt to show a relationship between CO2, NAO, and the frequency of hurricanes over time. 
 
 ```{r echo=FALSE}
 # Average max wind speed by year
@@ -192,17 +196,67 @@ colnames(hurricanes_wind)[2] <- "AVG_WIND"
 ggplot(hurricanes_wind, aes(x = YEAR, y = AVG_WIND)) + geom_point() + ylab("Average wind speed (kts)")
 ```
 
-Using the normal-normal model, we modeled hurricane wind speed using C02 concentration and NAO index. We ran 50000 itreations of the Markov Chain and found that this model was not very good at modeling hurricane severity.
+
+Looking at the plot we can see that there are no obvious growth or decrease in trend through time. Therefore, we decided to model it using different variables.
+For our first model, we tried to model hurricane severity over time using the NAO index and average atmospheric CO2 levels (we removed average ocean temperature from our model because it was collinear with CO2). The variable we used to indicate hurricane severity was wind speed, since the highest wind speed of a hurricane is what is used to categorize it.
+
+We used a normal-normal model to attempt to model wind speed with CO2 and NAO over time. The normal-normal model is called that because both the prior and posterior distributions of the data are normally distributed. All of the priors for this model are vague because, prior to creating and running our models, we didn't know much about the impact of NAO or CO2 on hurricane wind speed.
+
+$$Y_t \sim N(\beta_0+\beta_1X_{1t}+\beta_2(X_{2t}), \tau^{-1})$$
+$$\beta_0\sim N(0, 100^2)$$
+$$\beta_1\sim N(0, 100^2)$$
+$$\beta_2\sim N(0, 100^2)$$
+$$\tau\sim \Gamma(0.001, 0.001)$$
+
+
+
+Using the normal-normal model, we modeled hurricane wind speed using C02 concentration and NAO index. We ran 50000 iterations of the Markov Chain and found that this model was not very good at modeling hurricane severity.
 
 
 ### Hurricane Frequency
 
+Based on the past summer of hurricanes, it seems as if hurricanes are occurring more and more frequently.  We plotted our data to see if it agreed:
+
 ```{r echo=FALSE}
+ggplot(hurricanes_per_year, aes(x = YEAR, y = TOTAL_H)) + geom_point(color = 'goldenrod1') + xlab("Year") + ylab("Total hurricanes")
+```
+
+We can see that from the beginning of out data at 1950 to the end of our data in 2008, there has been a substantial increase in total number of hurricanes per year.  This prompted us to ask the questions: Can we model annual hurricane frequency using CO2 concentration and NAO index as predictors?
+
+Because we are interested in modeling the number of hurricanes per year (a count), we use a Poisson distribution.  Here, $\lambda$, the parameter describing the rate at which parameters occur, describes the expected number of hurricanes per year.  We use Poisson regression to model the log of the expected rate of hurricanes per year.  Our model is as follows:
+
+Let:
+
+$Y_{t} =$ total hurricanes in year $t$
+
+$X_{1t} =$ yearly CO2 concentration in year $t$
+
+$X_{2t} =$ NAO index in year $t$
+
+We propose the following model:
+
+$$Y_t | \beta_{0}, \beta_{1}, \beta_{2} \sim Pois(\lambda_i)$$
+
+$$log(\lambda_i) = \beta_0 + \beta_{1}X_{1t} + \beta_{2}X_{2t}$$
+
+$$\beta_0 \sim N(0, 1e6)$$
+
+$$\beta_{1} \sim N(0, 1e6)$$
+
+$$\beta_{2} \sim N(0, 1e6)$$
+
+
+
+
+
+
+```{r include=FALSE}
 # Adding zones to the temperature data and limiting time interval to between 1950-2008.
-temp_data<-na.omit(temp_data) %>%  filter(1950 <= Year) %>%
+temp_data_orig<-na.omit(temp_data_orig) %>%
+  filter(1950 <= Year) %>%
   filter(Year <= 2008)
-my_temp <- subset(temp_data, select = c("Year", "EQU-24N", "24N-44N", "44N-64N", "64N-90N"))
-colnames(my_temp) <- c("Year", "EQUtoN24", "N24to44", "N44to64", "N64to90")
+my_temp <- subset(temp_data_orig, select = c("Year", "X64N.90N", "X44N.64N", "X24N.44N", "EQU.24N"))
+colnames(my_temp) <- c("Year", "N64to90", "N44to64", "N24to44", "EQUtoN24")
 my_temp <- melt(my_temp, id=c("Year"))
 colnames(my_temp) <- c("year", "zone", "temp")
 
@@ -222,13 +276,12 @@ hurricanes_per_zone[is.na(hurricanes_per_zone)] <- 0
 hurricanes_per_year <- group_by(recent_hurricanes, YEAR) %>%
   summarize(length(unique(NAME)))
 colnames(hurricanes_per_year)[2] <- "TOTAL_HURRICANES"
-ggplot(hurricanes_per_year, aes(x = YEAR, y = TOTAL_HURRICANES)) + geom_point()+xlab("Year")+ylab("Total Number of Hurricanes")+theme(axis.title = element_text(size=20))
+
+ggplot(hurricanes_per_year, aes(x = YEAR, y = TOTAL_HURRICANES)) + geom_point()+xlab("Year")+ylab("Total Number of Hurricanes")
 ```
 
-In the plot above, we can see that the frequency of hurricanes generally increase throughout the years. To model the hurricane frequency per year we first used a Poisson regression model incorporating C02 concentration and NAO index. 
 
 ```{r echo=FALSE}
-head(hurricanes_per_year_clean)
 
 hur_mod <- " model {
   for (i in 1:length(TOTAL_H)) {
@@ -266,11 +319,199 @@ Nth.delete<-function(dataframe, n)dataframe[-(seq(n,to=nrow(dataframe),by=n)),]
 freq_sample_small <- Nth.delete(freq_sample, 2)
 ```
 
-### Hurricane Duration
-
-Our final model attempted to model the duration of the hurricane w
+We run rjags for 5000 iterations.  To confirm that our parameter estimates have converged, we create running mean plots.
 
 ```{r echo=FALSE}
+running_mean_plot(x=freq_sample_small$beta0, se=TRUE)
+running_mean_plot(x=freq_sample_small$beta1, se=TRUE)
+running_mean_plot(x=freq_sample_small$beta2, se=TRUE)
+```
+
+Based on the running mean plot, parameter estimates look like they have converges.  Parameter mean values and credible intervals are shown in Table X.
+
+(insert table X showing parameter mean values and credible intervals).
+
+We can also visualize the posterior distributions for these estimate parameters ($\beta_0, \beta_1, \beta_2$) in trace and density plots.
+
+```{r echo=FALSE}
+plot(freq_sim)
+```
+
+We notice that parameter estimates for $\beta_1$ and $\beta_2$ are centered around 0.  This means that we expect there to be no relationship between CO2 and NAO as predictors of hurricane frequency.
+
+```{r echo = FALSE}
+mean(freq_sample$beta1 < 0)
+mean(freq_sample$beta2 > 0)
+
+```
+
+Using the density plots, we can also measure posterior probability that our parameters of interest, in this case $\beta_1$ and $\beta_2$, are negatively or positively associated with our outcome, here hurricane frequency.  We calculate that the posterior probability of $\beta_1 < 0 = 0.6496$, meaning that CO2 is slightly negatively associated with increases in hurricane rate, and that the posterior probability of $\beta_2 > 0 = 0.670$, meaning that slightly positively associated with hurricane rate.
+
+From the model described above, we see that both NAO and CO2 are weak indicators of hurricane frequency.  But could this be due to differences in hurricane frequencies at different locations?  To better understand this, we turn to our next question.  Can we model annual hurricane frequency by zone using temperature anomalies as an explanatory variable?
+
+To start, we chose to restrict this model to hurricane occurring in the Atlantic ocean.  We divide our data into four zones based on latitude: equator to 24N, 24N to 44N, 44N to 64N, and 64N to 90N.  We selected these zones to match zones used in the available data on temperature anomalies.
+
+First map (all North America):
+```{r echo=FALSE, eval=FALSE, message=FALSE, warning = FALSE}
+
+#install.packages("marmap")
+#library(marmap)
+
+# Creating a custom palette of blues
+blues <- c("lightsteelblue4", "lightsteelblue3","lightsteelblue2", "lightsteelblue1")
+
+ALL <- getNOAA.bathy(lon1 = -180, lon2 = 20, lat1 = 0, lat2 = 90,resolution = 10)
+
+# Plotting the bathymetry with different colors for land and sea
+plot(ALL, image = TRUE, land = TRUE, lwd = 0.1, bpal = list(c(0,max(ALL), "grey"),
+c(min(ALL),0,blues)))
+
+# Making the coastline more visible
+plot(ALL, deep = 0, shallow = 0, step = 0, lwd = 0.4, add = TRUE) 
+points(hurricane_data$LONG, hurricane_data$LAT, pch = 21, col = "orange", bg = "orange", cex = 0.01)
+
+```
+
+```{r echo=FALSE, message=FALSE, warning = FALSE}
+N64.90.data <- subset(hurricane_data, LAT>64 & LAT<90 & LONG>(-100) & LONG<(-40))
+
+
+EQU.24N.data <- subset(hurricane_data, LAT>0 & LAT<24 & LONG>(-100) & LONG<(-40))
+
+
+N24.44.data <- subset(hurricane_data, LAT>24 & LAT<44 & LONG>(-100) & LONG<(-40))
+
+
+N44.64.data <- subset(hurricane_data, LAT>24 & LAT<44 & LONG>(-100) & LONG<(-40))
+```
+
+```{r echo=FALSE, eval=FALSE, message=FALSE, warning = FALSE}
+
+# Plot category graphs
+
+# Create category
+EQU.24N <- getNOAA.bathy(lon1 = -160, lon2 = -40, lat1 = 0, lat2 = 24, resolution = 10)
+
+# Plotting the bathymetry with different colors for land and sea
+plot(EQU.24N, image = TRUE, land = TRUE, lwd = 0.1, bpal = list(c(0,max(EQU.24N), "grey"),
+c(min(EQU.24N),0,blues)))
+
+# Making the coastline more visible
+plot(EQU.24N, deep = 0, shallow = 0, step = 0, lwd = 0.4, add = TRUE) 
+points(EQU.24N.data$LONG, EQU.24N.data$LAT, pch = 21, col = "orange", bg = "orange", cex = 0.03)
+
+# Create category
+N24.44 <- getNOAA.bathy(lon1 = -160, lon2 = -40, lat1 = 24, lat2 = 44,resolution = 10)
+
+# Plotting the bathymetry with different colors for land and sea
+plot(N24.44, image = TRUE, land = TRUE, lwd = 0.1, bpal = list(c(0,max(N24.44), "grey"),
+c(min(N24.44),0,blues)))
+
+# Making the coastline more visible
+plot(N24.44, deep = 0, shallow = 0, step = 0, lwd = 0.4, add = TRUE) 
+points(N24.44.data$LONG, N24.44.data$LAT, pch = 21, col = "orange",
+bg = "orange", cex = 0.03)
+
+# Create category
+N44.64 <- getNOAA.bathy(lon1 = -160, lon2 = -40, lat1 = 40, lat2 = 70,resolution = 10)
+
+# Plotting the bathymetry with different colors for land and sea
+plot(N44.64, image = TRUE, land = TRUE, lwd = 0.1, bpal = list(c(0,max(N44.64), "grey"),
+c(min(N44.64),0,blues)))
+
+# Making the coastline more visible
+plot(N44.64, deep = 0, shallow = 0, step = 0, lwd = 0.4, add = TRUE) 
+points(N44.64.data$LONG, N44.64.data$LAT, pch = 21, col = "orange",
+bg = "orange", cex = 0.03)
+
+# Create category
+N64.90 <- getNOAA.bathy(lon1 = -100, lon2 = -40, lat1 = 64, lat2 = 90,resolution = 10)
+
+# Plotting the bathymetry with different colors for land and sea
+plot(N64.90, image = TRUE, land = TRUE, lwd = 0.1, bpal = list(c(0,max(N64.90), "grey"),
+c(min(N64.90),0,blues)))
+
+# Making the coastline more visible
+plot(N64.90, deep = 0, shallow = 0, step = 0, lwd = 0.4, add = TRUE) 
+points(N64.90.data$LONG, N64.90.data$LAT, pch = 21, col = "orange", bg = "orange", cex = 0.03)
+
+```
+
+(insert graphic?)
+
+
+
+```{r echo=FALSE}
+# Divide northern hemisphere into four zones.  Get temperature from 1950 for each of these zones.
+temp_data <- read_csv("ZonAnn.csv")
+temp_data<-na.omit(temp_data) %>%
+  filter(1950 <= Year) %>%
+  filter(Year <= 2008)
+my_temp <- subset(temp_data, select = c("Year", "64N-90N", "44N-64N", "24N-44N", "EQU-24N"))
+colnames(my_temp) <- c("Year", "N64to90", "N44to64", "N24to44", "EQUtoN24")
+my_temp <- melt(my_temp, id=c("Year"))
+colnames(my_temp) <- c("year", "zone", "temp")
+head(my_temp)
+
+# divide hurricanes into four zones
+hurricane_locations_Atlantic <- merge(hurricane_locations, recent_hurricanes, by.x = c("name", "year", "lat", "long"), by.y = c("NAME", "YEAR", "LAT", "LONG"), all.x = TRUE) %>%
+  filter(BASIN == "North Atlantic") %>%
+  dplyr::select(c(year, name, long, lat))
+
+hurricanes_zones <- hurricane_locations_Atlantic %>% 
+  mutate(zone=cut(lat, breaks=c(0, 24, 44, 64, 90), labels=c("EQUtoN24", "N24to44", "N44to64", "N64to90"))) %>%
+  group_by(year, zone)  %>%
+  summarise(total = n())
+
+# combine hurricane and temp data frames together
+hurricanes_per_zone <- merge(my_temp, hurricanes_zones, by = c("year", "zone"), all.x = TRUE, all.y = TRUE)
+hurricanes_per_zone[is.na(hurricanes_per_zone)] <- 0
+head(hurricanes_per_zone)
+
+```
+
+
+Again, because we are modeling hurricane counts (although this time by zone), we use Poisson regression.  Zone is included as a categorical variable of four levels.  Our model is described below:
+
+Let:
+
+$Y_{t} =$ total hurricanes in year $t$
+
+$X_{1t} =$ temperature anomaly by year $t$
+
+$X_{2t} =$ zone $t$
+
+We propose the following model:
+
+$$Y_t | \beta_{0}, \beta_{1}, \beta_{2} \sim Pois(\lambda_i)$$
+
+$$log(\lambda_i) = \beta_0 + \beta_{1}X_{1t} + \beta_{2}X_{2t}$$
+
+$$\beta_0 \sim N(0, 1e6)$$
+
+$$\beta_{1} \sim N(0, 1e6)$$
+
+$$\beta_{2} \sim N(0, 1e6)$$
+
+
+Again, we used rjags MCMC method to estimate parameter values.  Although theoretically parameter value estimates should always converge given enough iterations, parameter estimates in our model failed to converge completely after 2.5 million iterations.  Due to this limitation, it should be noted that our posterior estimation is not as exact as desired.
+
+The mean parameter values and 95% credible intervals are shown in the table below:
+
+(insert table)
+
+Because these credible intervals do not contain zero, we conclude that zone and temperature anomalies are useful predictors of hurricane frequency.
+
+But how useful is this model really?  To further understand the usefulness of our model, we fit estimate the model parameters on training data and test it’s accuracy on a testing set.  We begin by splitting our model into a training and testing set.  The earliest 80% of data points are used as the training set and the remaining 20% are saved for testing the model.
+
+[insert plots here]
+
+
+
+
+### Hurricane Duration
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 # Hurricane data only looking at Date and name
 hurricane_time<-subset(recent_hurricanes, select = c(NAME,YEAR,MONTH,DAY))
 
@@ -291,11 +532,13 @@ colnames(foo)[2] <- "duration"
 colnames(foo)[1]<-"year"
 #create durations with temperature data, CO2 data, NAOI data and frequency data
 durations <- merge(foo, hurricanes_per_zone, by = c("year"), all.x = TRUE, all.y = TRUE)
-ggplot(foo,aes(x=YEAR, y=Average_Duration))+
-  geom_line()
+ggplot(durations,aes(x=year, y=duration))+
+  geom_point()+
+  xlab("Year")+
+  ylab("Average duration")
 ```
 
-In order to model average duration of hurricanes, we decided to use normal-normal model using zone categories and temperature anomalies. First, we decided to use these two variables because location seemed to have a higher correlation to hurricanes than C02 and the NAO index. Also, we decided on a normal-normal model because, the durations are not all at a constant rate depending on the hurricanes. The model seemed to be broad enough to incorporate the variability of hurricane durations.
+In order to model average duration of hurricanes, we decided to use normal-normal model, just like the hurricane wind speed model, but using zone categories and temperature anomalies instead of the NAO index and CO2 concentration.
 
 $$Y_t \sim N(\beta_0+\beta_1X_{1t}+\beta_2(X_{2t}), \tau^{-1})$$
 $$\beta_0\sim N(0, 100^2)$$
@@ -303,7 +546,9 @@ $$\beta_1\sim N(0, 100^2)$$
 $$\beta_2\sim N(0, 100^2)$$
 $$\tau\sim \Gamma(0.001, 0.001)$$
 
-```{r echo=FALSE}
+$\beta_1$ represented the coefficient for average temperature anomaly per year and $\beta_2$ represented the category zones.
+
+```{r echo=FALSE, message=FALSE, warning = FALSE, fig.height=6}
 library(rjags)
 
 #specify the model
@@ -327,20 +572,44 @@ duration_model <- "model{
 
 duration_jags <- jags.model(textConnection(duration_model), data=list(y = durations$duration, X1 = durations$temp, X2 = durations$zone), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=1989))
 
-
-
 duration_sim <- coda.samples(duration_jags, variable.names=c("beta0","beta1", "beta2","tau"), n.iter=10000)
 
-
-   
 duration_samples <- data.frame(duration_sim[[1]])
 plot(duration_sim)
 ```
 
+The density plots showed that the duration at the zone between latitudes 64N and 90N (shown as beta2.1.) is represented by the intercept, $\beta_0$. The other density plots show the differences from the sampled value from the intercept value. beta2.2. is the zone between 44N and 64N, beta2.3. Is the zone between 24N and 44N and the zone between the equator and 24N is represented by beta2.4.
+
+[Insert mean/quantile table here]
+
+The means show the average posterior duration of hurricanes and the quantiles show the 95% confidence interval for each zone.
+
+In order to see if they converge around we looked at running mean plots. 
+
+```{r echo=FALSE}
+# running mean plot for each values
+running_mean_plot(x=duration_samples$beta0, se=TRUE)
+running_mean_plot(x=duration_samples$beta1, se=TRUE)
+
+running_mean_plot(x=duration_samples$beta2.2., se=TRUE)
+running_mean_plot(x=duration_samples$beta2.3., se=TRUE)
+running_mean_plot(x=duration_samples$beta2.4., se=TRUE)
+running_mean_plot(x=duration_samples$tau, se=TRUE)
+```
+
+To see if there were any strong posterior association between the zones and hurricane duration, we ran multiple posterior probabilities for beta2.2., beta2.3., and beta2.4.
+
+[Insert posterior probability table here]
 
 ## Conclusion
 
+From the models, we made some final conclusions. CO2 was negatively associated with severity and hurricane frequency. The NAO had little association with severity and hurricane frequency. Positive temperature anomalies was positively associated with hurricane frequency and average duration of the hurricane. Increased latitude was negatively associated with frequency and weakly associated with hurricane duration.
 
+## Limitations and Future Research
+
+Some limitations of these models is that they look at averages of the climate change variables. Therefore, even if a hurricane occurred in March, it would be modeled with climate change variables averaged using all the different months. Also, the locations we used were used in the temperature data and may or may not have been strongly correlated to the hurricanes. 
+
+Future Research we can look at is to allow for the interactions between zones and climate change variables. We can also look at hurricanes at only specific points of their path such as landfall.
 
 ## References
 
@@ -364,7 +633,6 @@ library(ggmap)
 library(reshape2)
 library(MASS)
 library(viridis)
-#library(shiny)
 library(rjags)
 library(MacBayes)
 ```
@@ -458,7 +726,7 @@ hurricanes_per_year4 <- merge(x = hurricanes_per_year3, y = NAO_yr, by = "YEAR",
 hurricanes_per_year_clean<-na.omit(hurricanes_per_year4)
 
 # Wind speed data
-# Create new data set with windspeed and year
+# Create new data set with wind speed and year
 windspeed_yr <- hurricane_data %>%
   group_by(YEAR) %>%
   summarise(avg_windspeed = mean(WIND_KTS))
@@ -469,7 +737,7 @@ hurricanes_per_year_clean <- merge(x = hurricanes_per_year_clean, y = windspeed_
 head(hurricanes_per_year_clean)
 ```
 
-### Markov Chain for Windspeed
+### Markov Chain for Wind speed
 
 ```{r eval=FALSE}
 # specify the model
@@ -507,31 +775,33 @@ windSpeed_sample <- data.frame(step=1:500000, windSpeed_sim[[1]])
 
 ```{r eval=FALSE}
 # Adding zones to the temperature data and limiting time interval to between 1950-2008.
-temp_data<-na.omit(temp_data) %>%  filter(1950 <= Year) %>%
+temp_data_orig<-na.omit(temp_data_orig) %>%
+  filter(1950 <= Year) %>%
   filter(Year <= 2008)
-my_temp <- subset(temp_data, select = c("Year", "EQU-24N", "24N-44N", "44N-64N", "64N-90N"))
-colnames(my_temp) <- c("Year", "EQUtoN24", "N24to44", "N44to64", "N64to90")
+my_temp <- subset(temp_data_orig, select = c("Year", "X64N.90N", "X44N.64N", "X24N.44N", "EQU.24N"))
+colnames(my_temp) <- c("Year", "N64to90", "N44to64", "N24to44", "EQUtoN24")
 my_temp <- melt(my_temp, id=c("Year"))
 colnames(my_temp) <- c("year", "zone", "temp")
 
-# Divide hurricane dataset by zones
-hurricanes_zones <- hurricane_locations %>% 
-  mutate(zone=cut(lat, breaks=c(0, 24, 44, 64, 90), labels=c( "EQUtoN24", "N24to44", "N44to64","N64to90"))) %>%
+hurricane_locations_Atlantic <- merge(hurricane_locations, recent_hurricanes, by.x = c("name", "year", "lat", "long"), by.y = c("NAME", "YEAR", "LAT", "LONG"), all.x = TRUE) %>%
+  filter(BASIN == "North Atlantic") %>%
+  dplyr::select(c(year, name, long, lat))
+
+hurricanes_zones <- hurricane_locations_Atlantic %>% 
+  mutate(zone=cut(lat, breaks=c(0, 24, 44, 64, 90), labels=c("EQUtoN24", "N24to44", "N44to64", "N64to90"))) %>%
   group_by(year, zone)  %>%
   summarise(total = n())
+
+
 
 # Combine the  hurricane and temperature dataset together
 hurricanes_per_zone <- merge(my_temp, hurricanes_zones, by = c("year", "zone"), all.x = TRUE, all.y = TRUE)
 hurricanes_per_zone[is.na(hurricanes_per_zone)] <- 0
 ```
 
-```{r}
 
-#head(hurricanes_per_zone)
-#hurricanes_per_zone$zone
-#EQUtoN24 N24to44  N44to64  N64to90
 
-```
+
 
 #### Using CO2 and NAOI
 
@@ -574,9 +844,10 @@ Nth.delete<-function(dataframe, n)dataframe[-(seq(n,to=nrow(dataframe),by=n)),]
 freq_sample_small <- Nth.delete(freq_sample, 2)
 ```
 
-#### Using Teperature and Zone cateogories
+#### Using Temperature and Zone categories
 
-```{r eval=FALSE}
+Poisson regression--with temperature and location zone
+```{r fig.height=8, eval=FALSE}
 hur_mod3 <- " model {
   for (i in 1:length(total)) {
       total[i] ~ dpois(lam[i])
@@ -593,16 +864,34 @@ hur_mod3 <- " model {
 
 # set up an algorithm to simulate the posterior by combining the model and data (x)
 # set the random number seed
-freq_jags3 <- jags.model(textConnection(hur_mod3),data=list(total = hurricanes_per_zone$total, X1 = hurricanes_per_zone$temp, X2 = hurricanes_per_zone$zone), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=2000))
+#freq_jags3 <- jags.model(textConnection(hur_mod3),data=list(total = train_zone$total, X1 = train_zone$temp, X2 = train_zone$zone), inits=list(.RNG.name="base::Wichmann-Hill", .RNG.seed=2000))
+
+# try to manuall initialize params
+freq_jags3 <- jags.model(textConnection(hur_mod3),data=list(total = train_zone$total, X1 = train_zone$temp, X2 = train_zone$zone), inits=list(beta0=0, beta1=0, beta2 = c(NA, 8, 10, 10)))
+
 
 # simulate a sample from the posterior
-freq_sim3 <- coda.samples(freq_jags3, variable.names = c("beta1", "beta2"), n.iter=1000)
+freq_sim3 <- coda.samples(freq_jags3, variable.names = c("beta0", "beta1", "beta2"), n.iter=2500000)
 
 # store the samples in a data frame:
-freq_sample3 <- data.frame(step = 1:1000, freq_sim3[[1]])
+freq_sample3 <- data.frame(step = 1:2500000, freq_sim3[[1]])
 head(freq_sample3, 10)
 plot(freq_sim3)
+
+freq_sample3_small <- Nth.delete(freq_sample3, 2)
+
+plot_freq_sample3 <- freq_sample3 %>%
+  filter(step > (2500000-100000))
 ```
+
+Check for convergence
+```{r eval=FALSE}
+running_mean_plot(x=plot_freq_sample3$beta2.1., se=TRUE)
+running_mean_plot(x=plot_freq_sample3$beta2.2., se=TRUE)
+running_mean_plot(x=plot_freq_sample3$beta2.3., se=TRUE)
+running_mean_plot(x=plot_freq_sample3$beta2.4., se=TRUE)
+```
+
 
 ### Markov Chain for Average Duration
 
@@ -658,4 +947,45 @@ duration_jags <- jags.model(textConnection(duration_model), data=list(y = durati
 duration_sim <- coda.samples(duration_jags, variable.names=c("beta0","beta1", "beta2","tau"), n.iter=10000)
 
 duration_samples <- data.frame(duration_sim[[1]])
+summary(duration_sim)
+plot(duration_sim)
 ```
+
+```{r eval=FALSE}
+# running mean plot for each values
+running_mean_plot(x=duration_samples$beta0, se=TRUE)
+running_mean_plot(x=duration_samples$beta1, se=TRUE)
+
+running_mean_plot(x=duration_samples$beta2.2., se=TRUE)
+running_mean_plot(x=duration_samples$beta2.3., se=TRUE)
+running_mean_plot(x=duration_samples$beta2.4., se=TRUE)
+running_mean_plot(x=duration_samples$tau, se=TRUE)
+```
+
+```{r eval=FALSE}
+set.seed(19)
+
+# 95% conidence interval
+quantile(duration_samples$beta0, c(0.05, 0.975)) 
+quantile(duration_samples$beta1, c(0.05, 0.975))
+quantile(duration_samples$beta2.1.+duration_samples$beta0, c(0.05, 0.975))
+quantile(duration_samples$beta2.2.+duration_samples$beta0, c(0.05, 0.975))
+quantile(duration_samples$beta2.3.+duration_samples$beta0, c(0.05, 0.975))
+quantile(duration_samples$beta2.4.+duration_samples$beta0, c(0.05, 0.975))
+
+# Mean of all parameters
+mean(duration_samples$beta0)
+mean(duration_samples$beta1)
+mean(duration_samples$beta2.1.+duration_samples$beta0)
+mean(duration_samples$beta2.2.+duration_samples$beta0)
+mean(duration_samples$beta2.3.+duration_samples$beta0)
+mean(duration_samples$beta2.4.+duration_samples$beta0)
+mean(duration_samples$tau)
+
+# Posterior probability
+mean(duration_samples$beta2.2.<0)
+mean(duration_samples$beta2.3.<0)
+mean(duration_samples$beta2.4.<0)
+```
+
+
